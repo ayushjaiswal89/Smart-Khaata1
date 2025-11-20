@@ -18,7 +18,7 @@
       backdrop-filter: blur(8px);
       z-index: 5;
     }
-    .logo{display:flex; gap:12px; align-items:center}
+    .logo{display:flex; gap: 7px; align-items:center}
     .logo-badge{width:40px;height:40px;border-radius:10px;background:
       conic-gradient(from 180deg at 50% 50%, var(--pri), var(--acc), var(--pri));
       box-shadow: 0 0 24px rgba(109,211,251,.25) inset, 0 8px 24px rgba(0,0,0,.35);
@@ -183,7 +183,7 @@
 }
 
 /* Form spacing mobile boost */
-@media (max-width: 480px) {
+@media (max-width: 332px) {
   .btn {
     width: 100%;
     justify-content: center;
@@ -217,7 +217,7 @@
 }
 
 /* Mobile menu activated */
-@media (max-width: 760px){
+@media (max-width: 1190px){
 
   .menu-btn{
     display:block;

@@ -4,32 +4,56 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Smart Khaata — Home, Rent & Farm Manager</title>
-    <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
+  <!-- HEADER -->
   <header>
     <div class="logo">
       <div class="logo-badge" aria-hidden="true"></div>
       <h1>Smart Khaata</h1>
       <span class="muted">Home • Rent • Farm</span>
     </div>
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="home">🏠 Home Expenses</button>
-      <button class="tab-btn" data-tab="rent">🏢 Rent Income</button>
-      <button class="tab-btn" data-tab="farm">🌾 Farm Management</button>
-      <button class="tab-btn" data-tab="reports">📊 Reports</button>
-      <button class="tab-btn" data-tab="backup">🗄️ Backup</button>
-      <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
-    </nav>
-  </header>
 
+    <!-- DESKTOP TABS -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="home">🏠 Home Expenses</button>
+    <button class="tab-btn" data-tab="rent">🏢 Rent Income</button>
+    <button class="tab-btn" data-tab="farm">🌾 Farm Management</button>
+    <button class="tab-btn" data-tab="reports">📊 Reports</button>
+    <button class="tab-btn" data-tab="backup">🗄️ Backup</button>
+    <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+  </nav>
+
+  <!-- MOBILE MENU BUTTON (Correct position inside header) -->
+  <button id="menu-toggle" class="menu-btn">☰ Menu</button>
+
+</header>
+
+
+<!-- MOBILE SLIDE MENU (Correct position OUTSIDE header) -->
+<div id="mobile-menu" class="slide-menu">
+  <button class="tab-btn active" data-tab="home">🏠 Home Expenses</button>
+  <button class="tab-btn" data-tab="rent">🏢 Rent Income</button>
+  <button class="tab-btn" data-tab="farm">🌾 Farm Management</button>
+  <button class="tab-btn" data-tab="reports">📊 Reports</button>
+  <button class="tab-btn" data-tab="backup">🗄️ Backup</button>
+  <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+</div>
+
+  <!-- MAIN BODY -->
   <div class="container">
+
     <!-- HOME EXPENSES -->
     <section class="tab card" id="tab-home">
       <h2>🏠 Home Expenses</h2>
       <p class="muted">घर के खर्च जोड़ें, कैटेगरी के हिसाब से ट्रैक करें।</p>
 
       <div class="grid">
+
+        <!-- LEFT FORM -->
         <div class="card">
           <form id="form-home">
             <div class="row">
@@ -40,8 +64,12 @@
               <div class="col-4">
                 <label>कैटेगरी</label>
                 <select name="category" required>
-                  <option>किराना</option><option>यूटिलिटी</option><option>दवा</option>
-                  <option>परिवहन</option><option>शिक्षा</option><option>अन्य</option>
+                  <option>किराना</option>
+                  <option>यूटिलिटी</option>
+                  <option>दवा</option>
+                  <option>परिवहन</option>
+                  <option>शिक्षा</option>
+                  <option>अन्य</option>
                 </select>
               </div>
               <div class="col-4">
@@ -60,6 +88,7 @@
           </form>
         </div>
 
+        <!-- RIGHT LIST -->
         <div class="card">
           <div class="kpi">
             <div class="box">
@@ -76,19 +105,22 @@
               <div class="val" id="home-top-cat">—</div>
             </div>
           </div>
+
           <div class="toolbar">
             <input id="home-search" placeholder="खोजें (कैटेगरी/विवरण)" />
-            <select id="home-month-filter">
-              <option value="">सभी महीने</option>
-            </select>
+            <select id="home-month-filter"><option value="">सभी महीने</option></select>
             <button class="btn secondary small" id="home-export">CSV एक्सपोर्ट</button>
           </div>
+
           <div style="margin-top:10px;max-height:380px;overflow:auto;border-radius:12px">
             <table id="home-table">
-              <thead><tr><th>तारीख</th><th>कैटेगरी</th><th>विवरण</th><th>राशि</th><th></th></tr></thead>
+              <thead>
+                <tr><th>तारीख</th><th>कैटेगरी</th><th>विवरण</th><th>राशि</th><th></th></tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
+
         </div>
       </div>
     </section>
@@ -97,7 +129,10 @@
     <section class="tab card hidden" id="tab-rent">
       <h2>🏢 Rent Income</h2>
       <p class="muted">किराये की इनकम, देय/प्राप्ति और टेनेंट ट्रैक करें।</p>
+
       <div class="grid">
+
+        <!-- LEFT -->
         <div class="card">
           <form id="form-rent">
             <div class="row">
@@ -119,7 +154,7 @@
               </div>
               <div class="col-3">
                 <label>राशि (₹)</label>
-                <input type="number" name="amount" step="0.01" min="0" required />
+                <input type="number" name="amount" min="0" required />
               </div>
               <div class="col-6">
                 <label>स्टेटस</label>
@@ -131,16 +166,17 @@
               </div>
               <div class="col-6">
                 <label>नोट</label>
-                <input type="text" name="note" placeholder="उदा. मेन्टेनेंस कटौती" />
+                <input type="text" name="note" placeholder="उदा. मेंटेनेंस" />
               </div>
             </div>
             <div class="toolbar">
               <button class="btn" type="submit">➕ इनकम जोड़ें</button>
-              <button class="btn secondary" type="button" id="rent-clear">सूची साफ़ करें</button>
+              <button class="btn secondary" id="rent-clear" type="button">सूची साफ़ करें</button>
             </div>
           </form>
         </div>
 
+        <!-- RIGHT -->
         <div class="card">
           <div class="kpi">
             <div class="box">
@@ -156,17 +192,22 @@
               <div class="val" id="rent-tenants">0</div>
             </div>
           </div>
+
           <div class="toolbar">
             <input id="rent-search" placeholder="टेनेंट/नोट खोजें" />
             <select id="rent-month-filter"><option value="">सभी महीने</option></select>
             <button class="btn secondary small" id="rent-export">CSV एक्सपोर्ट</button>
           </div>
+
           <div style="margin-top:10px;max-height:380px;overflow:auto;border-radius:12px">
             <table id="rent-table">
-              <thead><tr><th>तारीख</th><th>टेनेंट</th><th>महीना</th><th>राशि</th><th>स्टेटस</th><th></th></tr></thead>
+              <thead>
+                <tr><th>तारीख</th><th>टेनेंट</th><th>महीना</th><th>राशि</th><th>स्टेटस</th><th></th></tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
+
         </div>
       </div>
     </section>
@@ -174,60 +215,51 @@
     <!-- FARM -->
     <section class="tab card hidden" id="tab-farm">
       <h2>🌾 Farm Management</h2>
-      <p class="muted">खेती का खर्च/उत्पादन, फ़सल-वार ट्रैकिंग और प्रॉफिट कैल्कुलेशन।</p>
+      <p class="muted">खर्च/उत्पादन/बिक्री—एक ही जगह।</p>
+
       <div class="grid">
+
+        <!-- LEFT -->
         <div class="card">
           <form id="form-farm">
             <div class="row">
-              <div class="col-3">
-                <label>तारीख</label>
-                <input type="date" name="date" required />
-              </div>
-              <div class="col-3">
-                <label>टाइप</label>
+              <div class="col-3"><label>तारीख</label><input type="date" name="date" required /></div>
+              <div class="col-3"><label>टाइप</label>
                 <select name="type">
-                  <option>Expense</option>
-                  <option>Yield</option>
-                  <option>Sale</option>
-                </select>
-              </div>
-              <div class="col-3">
-                <label>फ़सल</label>
-                <input type="text" name="crop" placeholder="उदा. गेहूं/धान/गन्ना" required />
-              </div>
-              <div class="col-3">
-                <label>राशि/मात्रा</label>
-                <input type="number" step="0.01" name="value" placeholder="₹ या क्विंटल" required />
-              </div>
-              <div class="col-12">
-                <label>नोट</label>
-                <input type="text" name="note" placeholder="उदा. उर्वरक, कटाई, मंडी बिक्री" />
-              </div>
+                  <option>Expense</option><option>Yield</option><option>Sale</option>
+                </select></div>
+              <div class="col-3"><label>फ़सल</label>
+                <input type="text" name="crop" placeholder="उदा. गेहूं" required /></div>
+              <div class="col-3"><label>राशि/मात्रा</label>
+                <input type="number" name="value" required /></div>
+              <div class="col-12"><label>नोट</label><input type="text" name="note" /></div>
             </div>
             <div class="toolbar">
-              <button class="btn" type="submit">➕ रिकॉर्ड जोड़ें</button>
-              <button class="btn secondary" type="button" id="farm-clear">सूची साफ़ करें</button>
+              <button class="btn">➕ रिकॉर्ड जोड़ें</button>
+              <button class="btn secondary" id="farm-clear" type="button">सूची साफ़ करें</button>
             </div>
           </form>
         </div>
 
+        <!-- RIGHT -->
         <div class="card">
           <div class="kpi">
             <div class="box">
               <div class="small muted">कुल फ़ार्म खर्च</div>
               <div class="val" id="farm-expense">₹0</div>
-              <div class="bar"><div class="fill" id="farm-expense-bar" style="width:0%"></div></div>
+              <div class="bar"><div class="fill" id="farm-expense-bar"></div></div>
             </div>
             <div class="box">
               <div class="small muted">कुल बिक्री</div>
               <div class="val" id="farm-sales">₹0</div>
-              <div class="bar"><div class="fill" id="farm-sales-bar" style="width:0%"></div></div>
+              <div class="bar"><div class="fill" id="farm-sales-bar"></div></div>
             </div>
             <div class="box">
-              <div class="small muted">अनुमानित प्रॉफिट</div>
+              <div class="small muted">अनुमानित लाभ</div>
               <div class="val" id="farm-profit">₹0</div>
             </div>
           </div>
+
           <div class="toolbar">
             <input id="farm-search" placeholder="फ़सल/नोट खोजें" />
             <select id="farm-type-filter">
@@ -236,12 +268,16 @@
             </select>
             <button class="btn secondary small" id="farm-export">CSV एक्सपोर्ट</button>
           </div>
+
           <div style="margin-top:10px;max-height:380px;overflow:auto;border-radius:12px">
             <table id="farm-table">
-              <thead><tr><th>तारीख</th><th>टाइप</th><th>फ़सल</th><th>राशि/मात्रा</th><th>नोट</th><th></th></tr></thead>
+              <thead>
+                <tr><th>तारीख</th><th>टाइप</th><th>फ़सल</th><th>मात्रा</th><th>नोट</th><th></th></tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
+
         </div>
       </div>
     </section>
@@ -249,22 +285,23 @@
     <!-- REPORTS -->
     <section class="tab card hidden" id="tab-reports">
       <h2>📊 Reports & Insights</h2>
-      <p class="muted">त्वरित समरी और ट्रेंड्स (सरल बार-विज़ुअल्स सहित)।</p>
+
       <div class="grid">
         <div class="card">
           <h3>समरी</h3>
           <div class="kpi">
-            <div class="box"><div class="small muted">कुल Home खर्च</div><div class="val" id="r-home">₹0</div></div>
-            <div class="box"><div class="small muted">कुल Rent प्राप्ति</div><div class="val" id="r-rent">₹0</div></div>
-            <div class="box"><div class="small muted">कुल Farm प्रॉफिट</div><div class="val" id="r-farm">₹0</div></div>
+            <div class="box"><div class="small muted">Home खर्च</div><div class="val" id="r-home">₹0</div></div>
+            <div class="box"><div class="small muted">Rent प्राप्ति</div><div class="val" id="r-rent">₹0</div></div>
+            <div class="box"><div class="small muted">Farm प्रॉफिट</div><div class="val" id="r-farm">₹0</div></div>
           </div>
         </div>
+
         <div class="card">
-          <h3>मासिक ट्रेंड (Home vs Rent)</h3>
-          <div class="bar" style="height:16px; margin:10px 0">
+          <h3>मासिक ट्रेंड</h3>
+          <div class="bar" style="height:16px;margin:10px 0">
             <div class="fill" id="r-ratio" style="width:50%"></div>
           </div>
-          <div class="muted small">नीला हिस्सा = Rent, हरा हिस्सा = Home बचत अनुपात संकेत</div>
+          <div class="muted small">नीला = Rent, हरा = Home तुलना</div>
         </div>
       </div>
     </section>
@@ -272,38 +309,39 @@
     <!-- BACKUP -->
     <section class="tab card hidden" id="tab-backup">
       <h2>🗄️ Backup / Restore</h2>
-      <p class="muted">अपना डेटा JSON में एक्सपोर्ट/इम्पोर्ट करें।</p>
-      <div class="toolbar" style="margin-bottom:12px">
+
+      <div class="toolbar">
         <button class="btn" id="backup-export">JSON Export</button>
-        <label class="btn secondary" for="backup-import">JSON Import</label>
-        <input type="file" id="backup-import" accept="application/json" class="hidden" />
+        <label for="backup-import" class="btn secondary">JSON Import</label>
+        <input type="file" id="backup-import" class="hidden" accept="application/json" />
       </div>
+
       <textarea id="backup-text" rows="8" placeholder="यहाँ JSON दिखेगा…"></textarea>
     </section>
 
     <!-- SETTINGS -->
     <section class="tab card hidden" id="tab-settings">
       <h2>⚙️ Settings</h2>
+
       <div class="row">
         <div class="col-6">
-          <label>महीने का खर्च लक्ष्य (₹)</label>
-          <input id="goal-expense" type="number" min="0" step="1" placeholder="उदा. 25000" />
+          <label>महीने का खर्च लक्ष्य</label>
+          <input id="goal-expense" type="number" min="0" />
         </div>
         <div class="col-6">
-          <label>किराये का लक्ष्य (₹)</label>
-          <input id="goal-rent" type="number" min="0" step="1" placeholder="उदा. 40000" />
+          <label>किराया लक्ष्य</label>
+          <input id="goal-rent" type="number" min="0" />
         </div>
       </div>
+
       <button class="btn" id="save-settings">सेव</button>
-      <span class="muted" id="save-msg" style="margin-left:8px"></span>
+      <span class="muted" id="save-msg"></span>
     </section>
+
   </div>
 
-  <footer>
-    Smart Khaata • आपके खर्च, किराया और खेती का एक ही डैशबोर्ड
-  </footer>
+  <footer>Smart Khaata • खर्च, किराया, खेती — सब एक जगह</footer>
 
   <script src="script.js"></script>
-
 </body>
 </html>

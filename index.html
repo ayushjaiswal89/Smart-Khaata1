@@ -9,16 +9,25 @@
 
 <body>
 
-  <!-- HEADER -->
-  <header>
+ <!-- HEADER -->
+<header class="main-header">
+  
+  <div class="header-left">
     <div class="logo">
-      <div class="logo-badge" aria-hidden="true"></div>
-      <h1>Smart Khaata</h1>
-      <span class="muted">Home • Rent • Farm</span>
+      <div class="logo-badge"></div>
+      <div>
+        <h1>Smart Khaata</h1>
+        <span class="muted">Home • Rent • Farm</span>
+      </div>
     </div>
+  </div>
 
-    <!-- DESKTOP TABS -->
-  <nav class="tabs">
+  <!-- MOBILE MENU BUTTON -->
+  <button id="menu-toggle" class="menu-btn">☰ Menu</button>
+  
+
+  <!-- DESKTOP TABS -->
+  <nav class="tabs desktop-tabs">
     <button class="tab-btn active" data-tab="home">🏠 Home Expenses</button>
     <button class="tab-btn" data-tab="rent">🏢 Rent Income</button>
     <button class="tab-btn" data-tab="farm">🌾 Farm Management</button>
@@ -27,10 +36,8 @@
     <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
   </nav>
 
-  <!-- MOBILE MENU BUTTON (Correct position inside header) -->
-  <button id="menu-toggle" class="menu-btn">☰ Menu</button>
-
 </header>
+
 
 
 <!-- MOBILE SLIDE MENU (Correct position OUTSIDE header) -->

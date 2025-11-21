@@ -200,6 +200,19 @@
     padding: 16px 6px;
     font-size: 13px;
   }
+  .logo h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: .3px;
+}
+}
+
+@media (max-width: 480px) {
+  .logo h1 {
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: .5px;
+  }
 }
 
 /* ------------------ MOBILE MENU ------------------ */

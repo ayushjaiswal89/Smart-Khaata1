@@ -1,9 +1,8 @@
 self.addEventListener("install", e => {
-  console.log("SW Installed");
   e.waitUntil(
     caches.open("smart-khaata-v1").then(cache => {
       return cache.addAll([
-        "./",               // homepage
+        "./",
         "index.html",
         "style.css",
         "script.js",

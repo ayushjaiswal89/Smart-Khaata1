@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#111; color:white; font-family:Arial; padding:20px;">
+<h2>Smart Khaata — Full Icon Pack Generator</h2>
+<p>यह पेज खुलते ही <b>3 PNG icons</b> अपने आप डाउनलोड कर देगा:</p>
+<ul>
+  <li>icon-192.png</li>
+  <li>icon-512.png</li>
+  <li>splash-1024.png (Splash Screen)</li>
+</ul>
+
+<canvas id="c192" width="192" height="192"></canvas>
+<canvas id="c512" width="512" height="512"></canvas>
+<canvas id="c1024" width="1024" height="1024"></canvas>
+
+<script>
+function makeIcon(canvas, size, isSplash=false) {
+  const ctx = canvas.getContext("2d");
+
+  // Background
+  ctx.fillStyle = "#0f1221";
+  ctx.fillRect(0, 0, size, size);
+
+  // Gradient Circle (bigger for splash)
+  const radius = isSplash ? size * 0.38 : size * 0.38;
+  const g = ctx.createLinearGradient(0, 0, size, size);
+  g.addColorStop(0, "#6dd3fb");
+  g.addColorStop(1, "#7ef29a");
+
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, radius, 0, Math.PI*2);
+  ctx.fill();
+
+  // Text SK (center)
+  ctx.fillStyle = "#0f1221";
+  ctx.font = `${size*0.28}px Arial Black`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("SK", size/2, size/2);
+
+  // Auto-download
+  const a = document.createElement("a");
+  a.download = isSplash ? "splash-1024.png" : `icon-${size}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+
+window.onload = () => {
+  makeIcon(document.getElementById("c192"), 192);
+  makeIcon(document.getElementById("c512"), 512);
+  makeIcon(document.getElementById("c1024"), 1024, true);
+
+  alert("🎉 All icons downloaded successfully!");
+};
+</script>
+</body>
+</html>

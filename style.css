@@ -294,6 +294,8 @@ tr:hover td{background:#121733}
   body{padding-bottom:86px}
 }
 
+
+
 @media (max-width:680px){
   header{padding:10px 12px}
   .logo h1{font-size:18px}
@@ -316,11 +318,17 @@ tr:hover td{background:#121733}
   }
   td:before{
     content:attr(data-label);
-    display:block;
+    
     color:#9aa3b2;
     font-size:12px;
     margin-bottom:4px;
   }
+  .row{
+  display:block;
+  grid-template-columns:repeat(12,1fr);
+  gap:10px;
+  margin-bottom:10px;
+}
 }
 
 /* ---------- FOOTER ---------- */

@@ -22,9 +22,12 @@
 
 <!-- Service Worker Register -->
 <script>
-  if ("serviceWorker" in navigator) {
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
     navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("SW Registered"));
+      .then(() => console.log("SW Registered"))
+      .catch(err => console.warn("SW registration failed:", err));
+  } else if (location.protocol === "file:") {
+    console.warn("Service worker disabled when running from file://");
   }
 </script>
 
@@ -202,51 +205,177 @@
       </div>
     </section>
 
-    <!-- FARM -->
-    <section class="tab card hidden" id="tab-farm">
-      <h2>🌾 Farm Management</h2>
-      <p class="muted">खर्च/उत्पादन/बिक्री—एक ही जगह।</p>
+   
+<!-- FARM -->
+<section class="tab card hidden" id="tab-farm">
 
-      <div class="grid">
-        <div class="card">
-          <form id="form-farm">
-            <div class="row">
-              <div class="col-3"><label>तारीख</label><input type="date" name="date" required /></div>
-              <div class="col-3"><label>टाइप</label>
-                <select name="type"><option>Expense</option><option>Yield</option><option>Sale</option></select></div>
-              <div class="col-3"><label>फ़सल</label><input type="text" name="crop" required /></div>
-              <div class="col-3"><label>राशि/मात्रा</label><input type="number" name="value" required /></div>
-              <div class="col-12"><label>नोट</label><input type="text" name="note" /></div>
-            </div>
-            <div class="toolbar">
-              <button class="btn">➕ रिकॉर्ड जोड़ें</button>
-              <button class="btn secondary" id="farm-clear">सूची साफ़ करें</button>
-            </div>
-          </form>
+  <h2>🌾 Farm Management</h2>
+  <p class="muted">खर्च/उत्पादन/बिक्री—एक ही जगह।</p>
+
+  <!-- Quick Buttons -->
+  <div class="toolbar">
+    <button class="btn" onclick="setFarmType('Expense')">+ Expense</button>
+    <button class="btn" onclick="setFarmType('Yield')">+ Yield</button>
+    <button class="btn" onclick="setFarmType('Sale')">+ Sale</button>
+  </div>
+
+  <div class="grid">
+
+    <!-- FORM -->
+    <div class="card">
+      <form id="form-farm">
+
+        <div class="row">
+
+          <div class="col-3">
+            <label>तारीख</label>
+            <input type="date" name="date" required />
+          </div>
+
+          <div class="col-3">
+            <label>टाइप</label>
+            <select id="farm-type-select" name="type">
+              <option>Expense</option>
+              <option>Yield</option>
+              <option>Sale</option>
+            </select>
+          </div>
+
+          <!-- Crop Dropdown -->
+          <div class="col-3">
+            <label>फ़सल</label>
+            <select name="crop">
+              <option>Wheat</option>
+              <option>Rice</option>
+              <option>Soybean</option>
+              <option>Cotton</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <!-- Expense -->
+          <div class="col-3 farm-expense-field">
+            <label>राशि (₹)</label>
+            <input type="number" name="amount" />
+          </div>
+
+          <!-- Quantity -->
+          <div class="col-2 farm-qty-field" style="display:none">
+            <label>मात्रा</label>
+            <input type="number" name="quantity" />
+          </div>
+
+          <!-- Unit -->
+          <div class="col-2 farm-unit-field" style="display:none">
+            <label>यूनिट</label>
+            <select name="unit">
+              <option>Kg</option>
+              <option>Quintal</option>
+              <option>Ton</option>
+            </select>
+          </div>
+
+          <!-- Price -->
+          <div class="col-2 farm-price-field" style="display:none">
+            <label>कीमत (₹)</label>
+            <input type="number" name="price" />
+          </div>
+
+          <div class="col-12">
+            <label>नोट</label>
+            <input type="text" name="note" />
+          </div>
+
         </div>
 
-        <div class="card">
-          <div class="kpi">
-            <div class="box"><div class="small muted">कुल फ़ार्म खर्च</div><div class="val" id="farm-expense">₹0</div><div class="bar"><div class="fill" id="farm-expense-bar"></div></div></div>
-            <div class="box"><div class="small muted">कुल बिक्री</div><div class="val" id="farm-sales">₹0</div><div class="bar"><div class="fill" id="farm-sales-bar"></div></div></div>
-            <div class="box"><div class="small muted">अनुमानित लाभ</div><div class="val" id="farm-profit">₹0</div></div>
-          </div>
-
-          <div class="toolbar">
-            <input id="farm-search" placeholder="फ़सल/नोट खोजें" />
-            <select id="farm-type-filter"><option value="">सभी</option><option>Expense</option><option>Yield</option><option>Sale</option></select>
-            <button class="btn secondary small" id="farm-export">CSV एक्सपोर्ट</button>
-          </div>
-
-          <div class="table-wrap">
-            <table id="farm-table">
-              <thead><tr><th>तारीख</th><th>टाइप</th><th>फ़सल</th><th>मात्रा</th><th>नोट</th><th></th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+        <div class="toolbar">
+          <button class="btn" type="submit">➕ रिकॉर्ड जोड़ें</button>
         </div>
+
+      </form>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+
+      <!-- KPI -->
+      <div class="kpi">
+
+        <div class="box">
+          <div class="small muted">कुल खर्च</div>
+          <div class="val" id="farm-expense">₹0</div>
+        </div>
+
+        <div class="box">
+          <div class="small muted">कुल बिक्री</div>
+          <div class="val" id="farm-sales">₹0</div>
+        </div>
+
+        <div class="box">
+          <div class="small muted">लाभ</div>
+          <div class="val" id="farm-profit">₹0</div>
+        </div>
+
       </div>
-    </section>
+
+      <div class="toolbar">
+        <input id="farm-search" placeholder="खोजें (फ़सल/नोट)" />
+        <select id="farm-type-filter">
+          <option value="">सभी टाइप</option>
+          <option>Expense</option>
+          <option>Yield</option>
+          <option>Sale</option>
+        </select>
+        <button class="btn secondary small" id="farm-export">CSV एक्सपोर्ट</button>
+      </div>
+
+      <!-- Graph -->
+      <div>
+
+        <div class="small muted">Expense vs Sale</div>
+
+        <div style="display:flex;gap:10px;height:120px;align-items:flex-end">
+
+          <div id="exp-bar"
+            style="width:50%;background:#ff6b6b">
+          </div>
+
+          <div id="sale-bar"
+            style="width:50%;background:#7ef29a">
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+
+        <table id="farm-table">
+
+          <thead>
+            <tr>
+              <th onclick="sortFarm('date')">तारीख ⬍</th>
+              <th>टाइप</th>
+              <th>फ़सल</th>
+              <th onclick="sortFarm('amount')">राशि ⬍</th>
+              <th>नोट</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody></tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
 
     <!-- REPORTS -->
     <section class="tab card hidden" id="tab-reports">

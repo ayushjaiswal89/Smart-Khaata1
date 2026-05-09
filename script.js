@@ -12,7 +12,7 @@ const store = {
 };
 
 // ---------- State ----------
-const state = store.get("smart-khaata", {
+const state = store.get("smart-khaata1", {
   home: [], rent: [], farm: [], settings: {goalExpense:0, goalRent:0}
 });
 

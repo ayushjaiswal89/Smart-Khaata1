@@ -2,10 +2,9 @@
   "name": "Smart Khaata",
   "short_name": "Khaata",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
   "background_color": "#0f1221",
-  "theme_color": "#0f1221",
+  "theme_color": "#6dd3fb",
   "icons": [
     {
       "src": "icon-192.png",

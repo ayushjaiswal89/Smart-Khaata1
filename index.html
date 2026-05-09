@@ -20,6 +20,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 
+<!-- OCR for meter photo scan -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+
 <!-- Service Worker Register -->
 <script>
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
@@ -159,22 +162,51 @@
       <div class="grid">
         <div class="card">
           <form id="form-rent">
+            <!-- Basic Info -->
             <div class="row">
-              <div class="col-3"><label>तारीख</label><input type="date" name="date" required /></div>
-              <div class="col-3"><label>टेनेंट</label><input type="text" name="tenant" required /></div>
-              <div class="col-3"><label>महीना</label>
+              <div class="col-4"><label>तारीख</label><input type="date" name="date" required /></div>
+              <div class="col-4"><label>टेनेंट</label><input type="text" name="tenant" required /></div>
+              <div class="col-4"><label>महीना</label>
                 <select name="month" required>
                   <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
                   <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
                   <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
                 </select>
               </div>
-              <div class="col-3"><label>राशि (₹)</label><input type="number" name="amount" min="0" required /></div>
+            </div>
+            
+            <!-- Rent & Status -->
+            <div class="row">
+              <div class="col-6"><label>किराया (₹)</label><input type="number" name="amount" step="0.01" min="0" required /></div>
               <div class="col-6"><label>स्टेटस</label>
                 <select name="status"><option>Received</option><option>Pending</option><option>Partial</option></select>
               </div>
-              <div class="col-6"><label>नोट</label><input type="text" name="note" /></div>
             </div>
+            
+            <!-- Meter Readings -->
+            <div class="row">
+              <div class="col-4"><label>पहला रीडिंग</label><input type="number" name="prevReading" step="0.01" min="0" placeholder="जैसे 520" /></div>
+              <div class="col-4"><label>वर्तमान रीडिंग</label><input type="number" name="currentReading" step="0.01" min="0" placeholder="जैसे 573.51" /></div>
+              <div class="col-4"><label>दर (₹/यूनिट)</label><input type="number" name="ratePerUnit" step="0.01" min="0" value="8" /></div>
+            </div>
+            
+            <!-- Calculated Values -->
+            <div class="row">
+              <div class="col-4"><label>यूनिट (ऑटो)</label><input type="text" name="units" readonly placeholder="0.00" /></div>
+              <div class="col-4"><label>बिजली बिल (₹) (ऑटो)</label><input type="text" name="lightBill" readonly placeholder="₹0" /></div>
+              <div class="col-4"><label>कुल (किराया + बिल)</label><input type="text" readonly placeholder="₹0" style="font-weight:bold;color:#7ef29a" id="rent-form-total" /></div>
+            </div>
+            
+            <!-- Photo & Notes -->
+            <div class="row">
+              <div class="col-6">
+                <label>मीटर फोटो (वैकल्पिक)</label>
+                <input type="file" id="rent-meter-photo" accept="image/*" style="margin-bottom:4px" />
+                <div class="muted small" id="rent-meter-status"></div>
+              </div>
+              <div class="col-6"><label>नोट</label><input type="text" name="note" placeholder="कोई विशेष जानकारी..." /></div>
+            </div>
+            
             <div class="toolbar">
               <button class="btn" type="submit">➕ इनकम जोड़ें</button>
               <button class="btn secondary" id="rent-clear">सूची साफ़ करें</button>
@@ -185,6 +217,8 @@
         <div class="card">
           <div class="kpi">
             <div class="box"><div class="small muted">माह की कुल वसूली</div><div class="val" id="rent-month-total">₹0</div></div>
+            <div class="box"><div class="small muted">लाइट बिल कुल</div><div class="val" id="rent-electric-total">₹0</div></div>
+            <div class="box"><div class="small muted">माह कुल (Rent+Light)</div><div class="val" id="rent-combined-total">₹0</div></div>
             <div class="box"><div class="small muted">पेंडिंग</div><div class="val" id="rent-pending">₹0</div></div>
             <div class="box"><div class="small muted">टेनेंट्स</div><div class="val" id="rent-tenants">0</div></div>
           </div>
@@ -197,7 +231,7 @@
 
           <div class="table-wrap">
             <table id="rent-table">
-              <thead><tr><th>तारीख</th><th>टेनेंट</th><th>महीना</th><th>राशि</th><th>स्टेटस</th><th></th></tr></thead>
+              <thead><tr><th>तारीख</th><th>टेनेंट</th><th>महीना</th><th>राशि</th><th>इकाइयाँ</th><th>लाइट बिल</th><th>कुल</th><th>स्टेटस</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>

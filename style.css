@@ -287,6 +287,29 @@ tr:hover td{background:#121733}
 }
 
 /* ---------- MOBILE RESPONSIVE ---------- */
+@media (max-width:980px){
+
+  .container{
+    padding:10px 14px 90px;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .kpi{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .toolbar{
+    width:100%;
+  }
+
+  .toolbar .btn{
+    flex:1;
+  }
+}
+
 @media (max-width:1190px){
   .tabs{display:none}
   .menu-btn{display:inline-block}
@@ -303,32 +326,93 @@ tr:hover td{background:#121733}
   .card{padding:12px}
 
   /* MOBILE TABLE */
-  table,thead,tbody,th,td,tr{display:block;width:100%}
-  thead{display:none}
-  tr{
-    margin-bottom:12px;
-    background:#121735;
-    padding:12px;
-    border-radius:10px;
+   table,
+  tbody{
+    width:100%;
   }
+
+  table,
+  thead,
+  tbody,
+  th,
+  td,
+  tr{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    margin-bottom:14px;
+    padding:12px;
+    border-radius:12px;
+    background:#121735;
+    border:1px solid #1e2447;
+  }
+
   td{
-    padding:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    padding:8px 0;
     border:none;
     font-size:14px;
+    word-break:break-word;
   }
-  td:before{
+
+  td::before{
     content:attr(data-label);
-    
     color:#9aa3b2;
     font-size:12px;
-    margin-bottom:4px;
+    font-weight:600;
+    min-width:90px;
+    padding-right:10px;
   }
+
+  /* ---------- KPI ---------- */
+
   .row{
-  display:block;
-  grid-template-columns:repeat(12,1fr);
-  gap:10px;
-  margin-bottom:10px;
-}
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .col-3,
+  .col-4,
+  .col-6,
+  .col-12{
+    width:100%;
+  }
+
+  input,
+  select,
+  textarea,
+  .btn{
+    width:100%;
+    font-size:14px;
+  }
+
+  .toolbar{
+   
+    align-items:stretch;
+  }
+
+  .toolbar .btn{
+    width:100%;
+  }
+
+  /* ---------- KPI ---------- */
+
+  .kpi{
+    grid-template-columns:1fr;
+  }
+
+  .kpi .val{
+    font-size:20px;
+  }
 }
 
 /* ---------- FOOTER ---------- */
@@ -336,4 +420,4 @@ footer{
   text-align:center;
   padding:18px;
   opacity:.7;
-}
+}  

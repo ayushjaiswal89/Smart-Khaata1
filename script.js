@@ -185,12 +185,32 @@ function setupEventListeners() {
   if(rentExp) rentExp.onclick = ()=>{
     const rows = filteredRent();
     const csv =
-      "date,tenant,month,amount,status,note\n" +
-      rows.map(r =>
-        `${r.date},"${r.tenant}",${r.month},${r.amount},${r.status},"${r.note}"`
-      ).join("\n");
+      "date,tenant,month,amount,prevReading,currentReading,ratePerUnit,units,lightBill,totalAmount,status,note\n" +
+      rows.map(r => {
+        const prev = r.prevReading ?? "";
+        const curr = r.currentReading ?? "";
+        const rate = r.ratePerUnit ?? "";
+        const units = r.units ?? "";
+        const bill = r.lightBill ?? 0;
+        const total = r.totalAmount ?? r.amount ?? 0;
+        return `${r.date},"${r.tenant}",${r.month},${r.amount},${prev},${curr},${rate},${units},${bill},${total},${r.status},"${r.note}"`;
+      }).join("\n");
 
     download(`rent-${todayStr()}.csv`, csv);
+  };
+
+  const rentForm = $("#form-rent");
+  if(rentForm) {
+    ["prevReading","currentReading","ratePerUnit","amount"].forEach(name => {
+      const input = rentForm.elements[name];
+      if(input) input.addEventListener("input", updateRentBillFields);
+    });
+  }
+
+  const rentPhoto = $("#rent-meter-photo");
+  if(rentPhoto) rentPhoto.onchange = e=>{
+    const file = e.target.files[0];
+    if(file) scanRentMeterPhoto(file);
   };
 
   const farmSrc = $("#farm-search");
@@ -248,6 +268,7 @@ function renderHome(){
     Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
 
   $("#home-daily-avg").textContent = fmt(tm / new Date().getDate());
+  renderReports();
 }
 
 // =========================================================
@@ -255,6 +276,116 @@ function renderHome(){
 // =========================================================
 
 $("#form-rent").date.value = todayStr();
+
+function computeRentBill({ prev=0, curr=0, rate=0 } = {}) {
+  const units = Math.max(0, Number(curr || 0) - Number(prev || 0));
+  const bill = Number((units * Number(rate || 0)).toFixed(2));
+  return { units, bill };
+}
+
+function updateRentBillFields() {
+  const f = $("#form-rent");
+  if(!f) return;
+
+  const { units, bill } = computeRentBill({
+    prev: f.elements.prevReading.value,
+    curr: f.elements.currentReading.value,
+    rate: f.elements.ratePerUnit.value
+  });
+
+  f.elements.units.value = units ? units.toFixed(2) : "";
+  f.elements.lightBill.value = bill ? bill.toFixed(2) : "";
+  
+  const rentAmount = Number(f.elements.amount.value||0);
+  const totalAmount = rentAmount + bill;
+  
+  const totalField = $("#rent-form-total");
+  if(totalField) {
+    totalField.value = totalAmount > 0 ? fmt(totalAmount) : "";
+  }
+}
+
+async function scanRentMeterPhoto(file) {
+  const status = $("#rent-meter-status");
+  if(!file || !status) return;
+
+  status.textContent = "स्कैन कर रहे हैं…";
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    img.onload = async () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      // Enhance image: grayscale + contrast
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      for(let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const gray = r * 0.3 + g * 0.59 + b * 0.11;
+        
+        // Increase contrast
+        const enhanced = gray > 100 ? 255 : 0;
+        data[i] = data[i+1] = data[i+2] = enhanced;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      
+      const enhancedBlob = await new Promise(r => canvas.toBlob(r));
+      const { data: ocrData } = await Tesseract.recognize(enhancedBlob, "eng");
+      
+      const text = ocrData.text || "";
+      console.log("OCR Raw Text:", text);
+      
+      // Extract all numbers with their positions
+      const regex = /\\d+(?:\\.\\d+)?/g;
+      let match;
+      const allNumbers = [];
+      while((match = regex.exec(text)) !== null) {
+        allNumbers.push(match[0]);
+      }
+      
+      console.log("All detected numbers:", allNumbers);
+      
+      // Filter for valid meter readings:
+      // - Between 100 and 999999
+      // - Not batch/series numbers (length 5+ usually meter readings)
+      const validReadings = allNumbers.filter(n => {
+        const num = Number(n);
+        return num >= 100 && num <= 999999;
+      });
+      
+      // Prefer 5-6 digit numbers (most common meter range)
+      const preferred = validReadings.filter(n => n.length >= 5 && n.length <= 6);
+      const candidates = preferred.length > 0 ? preferred : validReadings;
+      
+      if(candidates.length > 0) {
+        // Take the first valid candidate (usually leftmost/main reading)
+        const reading = candidates[0];
+        const form = $("#form-rent");
+        form.elements.currentReading.value = reading;
+        updateRentBillFields();
+        
+        let msg = `✓ रीडिंग: ${reading}`;
+        if(candidates.length > 1) {
+          msg += ` [विकल्प: ${candidates.slice(1, 3).join(", ")}]`;
+        }
+        msg += ` - गलत हो तो मैन्युअली ठीक करें`;
+        status.textContent = msg;
+      } else {
+        status.textContent = "❌ कोई मीटर रीडिंग नहीं मिली। कृपया फ़ोटो स्पष्ट लें या मैन्युअली दर्ज करें।";
+      }
+    };
+    
+    img.src = URL.createObjectURL(file);
+  } catch(err) {
+    status.textContent = "❌ स्कैन विफल। मैन्युअली दर्ज करें।";
+    console.error("OCR Error:", err);
+  }
+}
 
 $("#form-rent").addEventListener("submit", e=>{
   e.preventDefault();
@@ -265,6 +396,12 @@ $("#form-rent").addEventListener("submit", e=>{
     Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"
   }[f.month.value];
 
+  const { units, bill } = computeRentBill({
+    prev: f.prevReading.value,
+    curr: f.currentReading.value,
+    rate: f.ratePerUnit.value
+  });
+
   state.rent.unshift({
     id: crypto.randomUUID(),
     date: f.date.value,
@@ -273,16 +410,24 @@ $("#form-rent").addEventListener("submit", e=>{
     yearMonth: ym,
     amount: Number(f.amount.value||0),
     status: f.status.value,
-    note: f.note.value.trim()
+    note: f.note.value.trim(),
+    prevReading: Number(f.prevReading.value||0),
+    currentReading: Number(f.currentReading.value||0),
+    ratePerUnit: Number(f.ratePerUnit.value||0),
+    units,
+    lightBill: bill,
+    totalAmount: Number(f.amount.value||0) + bill
   });
 
   store.set("smart-khaata", state);
 
-  f.reset(); 
+  f.reset();
   f.date.value = todayStr();
   f.status.value = "Received";
+  f.ratePerUnit.value = 8;
+  updateRentBillFields();
 
-  renderRent(); 
+  renderRent();
   seedMonthSelects();
 });
 
@@ -302,11 +447,14 @@ function renderRent(){
 
   tbody.innerHTML = rows.map(r=>`
     <tr>
-      <td>${r.date}</td>
-      <td>${r.tenant}</td>
-      <td>${r.month}</td>
-      <td><span class="pill pos">${fmt(r.amount)}</span></td>
-      <td>${r.status}</td>
+      <td data-label="तारीख">${r.date}</td>
+      <td data-label="टेनेंट">${r.tenant}</td>
+      <td data-label="महीना">${r.month}</td>
+      <td data-label="राशि"><span class="pill pos">${fmt(r.amount)}</span></td>
+      <td data-label="इकाइयाँ">${typeof r.units !== 'undefined' ? Number(r.units).toFixed(2) : ""}</td>
+      <td data-label="लाइट बिल"><span class="pill neg">${fmt(r.lightBill || 0)}</span></td>
+      <td data-label="कुल"><span class="pill pos">${fmt(r.totalAmount ?? r.amount)}</span></td>
+      <td data-label="स्टेटस">${r.status}</td>
       <td><button class="btn secondary small" data-del="${r.id}">हटाएँ</button></td>
     </tr>
   `).join("");
@@ -319,19 +467,35 @@ function renderRent(){
     };
   });
 
-  const ym = monthKey();
-
+  // Calculate totals for ALL data (not just current month)
   const total = state.rent
-    .filter(x=>x.yearMonth===ym && x.status!="Pending")
-    .reduce((a,b)=>a+b.amount,0);
+    .filter(x => x.status !== "Pending")
+    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
+
+  const electricTotal = state.rent
+    .reduce((a, b) => a + (b.lightBill ?? 0), 0);
+
+  const combinedTotal = state.rent
+    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
 
   const pending = state.rent
-    .filter(x=>x.yearMonth===ym && x.status!="Received")
-    .reduce((a,b)=>a+b.amount,0);
+    .filter(x => x.status !== "Received")
+    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
+
+  // Count unique tenants across all data
+  const allTenants = new Set(state.rent.map(x => x.tenant)).size;
+
+  // Debug: log data
+  console.log("Total rent entries:", state.rent.length);
+  console.log("Sample rent data:", state.rent.slice(0, 2));
+  console.log("Calculated totals - total:", total, "electric:", electricTotal, "combined:", combinedTotal, "pending:", pending);
 
   $("#rent-month-total").textContent = fmt(total);
+  $("#rent-electric-total").textContent = fmt(electricTotal);
+  $("#rent-combined-total").textContent = fmt(combinedTotal);
   $("#rent-pending").textContent = fmt(pending);
-  $("#rent-tenants").textContent = new Set(state.rent.map(x=>x.tenant)).size;
+  $("#rent-tenants").textContent = allTenants;
+  renderReports();
 }
 
 // =========================================================
@@ -532,6 +696,7 @@ function renderFarm(){
   const maxVal = Math.max(expense, sales, 1);
   $("#exp-bar").style.height = (expense/maxVal*100)+"%";
   $("#sale-bar").style.height = (sales/maxVal*100)+"%";
+  renderReports();
 }
 
 let farmSortField = 'date';
@@ -637,6 +802,7 @@ function renderAll(){
   loadSettings();
 }
 
+setupEventListeners();
 renderAll();
 openTab("home");
 

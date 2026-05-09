@@ -131,7 +131,7 @@ $("#form-home").addEventListener("submit", e=>{
     note: f.note.value.trim()
   });
 
-  store.set("smart-khaata", state);
+  store.set("smart-khaata1", state);
 
   f.reset(); 
   f.date.value = todayStr();
@@ -145,7 +145,7 @@ function setupEventListeners() {
   if(homeClr) homeClr.onclick = ()=>{
     if(confirm("सभी Home रिकॉर्ड हटाएँ?")){
       state.home = [];
-      store.set("smart-khaata", state);
+      store.set("smart-khaata1", state);
       renderHome();
     }
   };
@@ -170,7 +170,7 @@ function setupEventListeners() {
   if(rentClr) rentClr.onclick = ()=>{
     if(confirm("सभी Rent इनकम हटाएँ?")){
       state.rent = [];
-      store.set("smart-khaata", state);
+      store.set("smart-khaata1", state);
       renderRent();
     }
   };
@@ -247,7 +247,7 @@ function renderHome(){
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
       state.home = state.home.filter(x=>x.id !== btn.dataset.del);
-      store.set("smart-khaata", state);
+      store.set("smart-khaata1", state);
       renderHome();
     };
   });
@@ -419,7 +419,7 @@ $("#form-rent").addEventListener("submit", e=>{
     totalAmount: Number(f.amount.value||0) + bill
   });
 
-  store.set("smart-khaata", state);
+  store.set("smart-khaata1", state);
 
   f.reset();
   f.date.value = todayStr();
@@ -462,7 +462,7 @@ function renderRent(){
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
       state.rent = state.rent.filter(x=>x.id !== btn.dataset.del);
-      store.set("smart-khaata", state);
+      store.set("smart-khaata1", state);
       renderRent();
     };
   });
@@ -566,7 +566,7 @@ $("#form-farm").addEventListener("submit", e=>{
     state.farm.unshift(farmData);
   }
 
-  store.set("smart-khaata", state);
+  store.set("smart-khaata1", state);
   f.reset();
   f.date.value = todayStr();
   renderFarm();
@@ -666,7 +666,7 @@ function renderFarm(){
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
       state.farm = state.farm.filter(x=>x.id !== btn.dataset.del);
-      store.set("smart-khaata", state);
+      store.set("smart-khaata1", state);
       renderFarm();
     };
   });
@@ -761,7 +761,7 @@ $("#backup-import").onchange = async e=>{
     const d = JSON.parse(await file.text());
     ["home","rent","farm","settings"].forEach(k=> state[k] = d[k] ?? state[k]);
 
-    store.set("smart-khaata", state);
+    store.set("smart-khaata1", state);
     renderAll();
     alert("इम्पोर्ट सफल!");
   }catch(e){
@@ -781,7 +781,7 @@ function loadSettings(){
 $("#save-settings").onclick = ()=>{
   state.settings.goalExpense = Number($("#goal-expense").value||0);
   state.settings.goalRent    = Number($("#goal-rent").value||0);
-  store.set("smart-khaata", state);
+  store.set("smart-khaata1", state);
 
   $("#save-msg").textContent = "सेव हुआ!";
   setTimeout(()=> $("#save-msg").textContent="",1500);

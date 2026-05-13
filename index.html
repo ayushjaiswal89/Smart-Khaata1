@@ -140,7 +140,8 @@
 
           <div class="toolbar">
             <input id="home-search" placeholder="खोजें (कैटेगरी/विवरण)" />
-            <select id="home-month-filter"><option value="">सभी महीने</option></select>
+            <select id="home-month-filter">
+              <option value="">सभी महीने</option></select>
             <button class="btn secondary small" id="home-export">CSV एक्सपोर्ट</button>
           </div>
 
@@ -287,6 +288,20 @@
             </select>
           </div>
 
+            <!-- Expense Category -->
+          <div class="col-3 farm-expense-field" style="display:none">
+            <label>खर्च की श्रेणी</label>
+            <select name="expenseCategory">
+              <option></option>
+              <option>बीज</option>
+              <option>खाद</option>
+              <option>मजदूरी</option>
+              <option>डीजल</option>
+              <option>सिंचाई</option>
+              <option>अन्य</option>
+            </select>
+          </div>
+
           <!-- Expense -->
           <div class="col-3 farm-expense-field">
             <label>राशि (₹)</label>
@@ -338,11 +353,13 @@
         <div class="box">
           <div class="small muted">कुल खर्च</div>
           <div class="val" id="farm-expense">₹0</div>
+          <div class="bar"><div class="fill" id="farm-expense-bar" style="width:0%"></div></div>
         </div>
 
         <div class="box">
           <div class="small muted">कुल बिक्री</div>
           <div class="val" id="farm-sales">₹0</div>
+          <div class="bar"><div class="fill" id="farm-sales-bar" style="width:0%"></div></div>
         </div>
 
         <div class="box">

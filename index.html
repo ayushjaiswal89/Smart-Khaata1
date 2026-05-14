@@ -165,15 +165,16 @@
           <form id="form-rent">
             <!-- Basic Info -->
             <div class="row">
-              <div class="col-4"><label>तारीख</label><input type="date" name="date" required /></div>
-              <div class="col-4"><label>टेनेंट</label><input type="text" name="tenant" required /></div>
-              <div class="col-4"><label>महीना</label>
+              <div class="col-3"><label>तारीख</label><input type="date" name="date" required /></div>
+              <div class="col-3"><label>टेनेंट</label><input type="text" name="tenant" required /></div>
+              <div class="col-3"><label>महीना</label>
                 <select name="month" required>
                   <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
                   <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
                   <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
                 </select>
               </div>
+              <div class="col-3"><label>📱 WhatsApp</label><input type="tel" name="whatsapp" placeholder="जैसे 9876543210" /></div>
             </div>
             
             <!-- Rent & Status -->
@@ -220,7 +221,9 @@
             <div class="box"><div class="small muted">माह की कुल वसूली</div><div class="val" id="rent-month-total">₹0</div></div>
             <div class="box"><div class="small muted">लाइट बिल कुल</div><div class="val" id="rent-electric-total">₹0</div></div>
             <div class="box"><div class="small muted">माह कुल (Rent+Light)</div><div class="val" id="rent-combined-total">₹0</div></div>
-            <div class="box"><div class="small muted">पेंडिंग</div><div class="val" id="rent-pending">₹0</div></div>
+            <div class="box"><div class="small muted">✓ Received</div><div class="val" id="rent-received">₹0</div></div>
+            <div class="box"><div class="small muted">⏳ Pending</div><div class="val" id="rent-pending">₹0</div></div>
+            <div class="box"><div class="small muted">◐ Partial</div><div class="val" id="rent-partial">₹0</div></div>
             <div class="box"><div class="small muted">टेनेंट्स</div><div class="val" id="rent-tenants">0</div></div>
           </div>
 
@@ -232,7 +235,7 @@
 
           <div class="table-wrap">
             <table id="rent-table">
-              <thead><tr><th>तारीख</th><th>टेनेंट</th><th>महीना</th><th>राशि</th><th>इकाइयाँ</th><th>लाइट बिल</th><th>कुल</th><th>स्टेटस</th><th></th></tr></thead>
+              <thead><tr><th>तारीख</th><th>टेनेंट</th><th>महीना</th><th>राशि</th><th>इकाइयाँ</th><th>लाइट बिल</th><th>कुल</th><th>स्टेटस</th><th>📱 WhatsApp</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>

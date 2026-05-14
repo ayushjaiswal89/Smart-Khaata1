@@ -184,8 +184,15 @@ function setupEventListeners() {
   const rentExp = $("#rent-export");
   if(rentExp) rentExp.onclick = ()=>{
     const rows = filteredRent();
-    const csv =
-      "Date,Tenant,Month,Amount,PrevReading,CurrentReading,RatePerUnit,Units,LightBill,TotalAmount,Status,Note\n" +
+    const selectedMonth = $("#rent-month-filter").value;
+    const monthLabel = selectedMonth ? selectedMonth : "All";
+    
+    // Header with month info
+    let csv = `Rent Income Report - ${monthLabel}\nGenerated: ${new Date().toLocaleString('hi-IN')}\n\n`;
+    
+    // Main data
+    csv +=
+      "तारीख,टेनेंट,महीना,किराया (₹),पिछली रीडिंग,वर्तमान रीडिंग,दर (₹/यूनिट),यूनिट,लाइट बिल (₹),कुल (₹),स्टेटस,नोट\n" +
       rows.map(r => {
         const prev = r.prevReading ?? "";
         const curr = r.currentReading ?? "";
@@ -195,8 +202,24 @@ function setupEventListeners() {
         const total = r.totalAmount ?? r.amount ?? 0;
         return `"${r.date}","${r.tenant}","${r.month}",${r.amount},"${prev}","${curr}","${rate}","${units}",${bill},${total},"${r.status}","${r.note}"`;
       }).join("\n");
+    
+    // Tenant-wise breakdown
+    csv += "\n\nटेनेंट-वार सारांश\nTenant,Received,Pending,Partial,Total\n";
+    const tenantMap = {};
+    rows.forEach(r => {
+      if(!tenantMap[r.tenant]) tenantMap[r.tenant] = {received: 0, pending: 0, partial: 0};
+      const amount = r.totalAmount ?? r.amount ?? 0;
+      if(r.status === "Received") tenantMap[r.tenant].received += amount;
+      else if(r.status === "Pending") tenantMap[r.tenant].pending += amount;
+      else if(r.status === "Partial") tenantMap[r.tenant].partial += amount;
+    });
+    
+    Object.entries(tenantMap).forEach(([tenant, data]) => {
+      const total = data.received + data.pending + data.partial;
+      csv += `"${tenant}",${data.received},${data.pending},${data.partial},${total}\n`;
+    });
 
-    download(`rent-${todayStr()}.csv`, csv);
+    download(`rent-${monthLabel}-${todayStr()}.csv`, csv);
   };
 
   const rentForm = $("#form-rent");
@@ -396,6 +419,17 @@ $("#form-rent").addEventListener("submit", e=>{
     Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"
   }[f.month.value];
 
+  const tenant = f.tenant.value.trim();
+
+  // Fix #5: Duplicate Prevention - Check if same tenant + month exists
+  const existingEntry = state.rent.find(x => x.tenant === tenant && x.yearMonth === ym);
+  if(existingEntry) {
+    const proceed = confirm(`⚠️ ${tenant} का ${f.month.value} ${f.date.value.slice(0,4)} का entry पहले से है।\n\nक्या update करना है? OK = Update | Cancel = नई entry`);
+    if(proceed) {
+      state.rent = state.rent.filter(x => x.id !== existingEntry.id);
+    }
+  }
+
   const { units, bill } = computeRentBill({
     prev: f.prevReading.value,
     curr: f.currentReading.value,
@@ -405,12 +439,13 @@ $("#form-rent").addEventListener("submit", e=>{
   state.rent.unshift({
     id: crypto.randomUUID(),
     date: f.date.value,
-    tenant: f.tenant.value.trim(),
+    tenant: tenant,
     month: f.month.value,
     yearMonth: ym,
     amount: Number(f.amount.value||0),
     status: f.status.value,
     note: f.note.value.trim(),
+    whatsapp: f.whatsapp.value.trim(),
     prevReading: Number(f.prevReading.value||0),
     currentReading: Number(f.currentReading.value||0),
     ratePerUnit: Number(f.ratePerUnit.value||0),
@@ -454,10 +489,18 @@ function renderRent(){
       <td data-label="इकाइयाँ">${typeof r.units !== 'undefined' ? Number(r.units).toFixed(2) : ""}</td>
       <td data-label="लाइट बिल"><span class="pill neg">${fmt(r.lightBill || 0)}</span></td>
       <td data-label="कुल"><span class="pill pos">${fmt(r.totalAmount ?? r.amount)}</span></td>
-      <td data-label="स्टेटस">${r.status}</td>
+      <td data-label="स्टेटस"><span class="pill ${r.status === 'Received' ? 'pos' : r.status === 'Pending' ? 'neg' : 'neutral'}">${r.status}</span></td>
+      <td data-label="📱 WhatsApp">${r.whatsapp ? `<button class="btn secondary small" data-send-wa="${r.id}">📱 भेजें</button>` : "—"}</td>
       <td><button class="btn secondary small" data-del="${r.id}">हटाएँ</button></td>
     </tr>
   `).join("");
+
+  tbody.querySelectorAll("[data-send-wa]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const rent = state.rent.find(x => x.id === btn.dataset.sendWa);
+      if(rent && rent.whatsapp) sendWhatsAppMessage(rent);
+    };
+  });
 
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
@@ -467,35 +510,94 @@ function renderRent(){
     };
   });
 
-  // Calculate totals for ALL data (not just current month)
-  const total = state.rent
-    .filter(x => x.status !== "Pending")
+  // Get selected month filter
+  const selectedMonth = $("#rent-month-filter").value;
+
+  // Calculate totals for SELECTED MONTH ONLY
+  const monthData = selectedMonth 
+    ? state.rent.filter(x => x.yearMonth === selectedMonth)
+    : state.rent;
+
+  // Fix #1: Correct Pending Calculation (only "Pending" status)
+  const total = monthData
+    .filter(x => x.status === "Received")
+    .reduce((a, b) => a + (b.amount ?? 0), 0);
+
+  const received = monthData
+    .filter(x => x.status === "Received")
     .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
 
-  const electricTotal = state.rent
+  const pending = monthData
+    .filter(x => x.status === "Pending")
+    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
+
+  const partial = monthData
+    .filter(x => x.status === "Partial")
+    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
+
+  const electricTotal = monthData
     .reduce((a, b) => a + (b.lightBill ?? 0), 0);
 
-  const combinedTotal = state.rent
+  const combinedTotal = monthData
     .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
 
-  const pending = state.rent
-    .filter(x => x.status !== "Received")
-    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
+  // Count unique tenants in selected month
+  const tenantCount = new Set(monthData.map(x => x.tenant)).size;
 
-  // Count unique tenants across all data
-  const allTenants = new Set(state.rent.map(x => x.tenant)).size;
-
-  // Debug: log data
-  console.log("Total rent entries:", state.rent.length);
-  console.log("Sample rent data:", state.rent.slice(0, 2));
-  console.log("Calculated totals - total:", total, "electric:", electricTotal, "combined:", combinedTotal, "pending:", pending);
-
+  // Update KPI boxes
   $("#rent-month-total").textContent = fmt(total);
   $("#rent-electric-total").textContent = fmt(electricTotal);
   $("#rent-combined-total").textContent = fmt(combinedTotal);
+  $("#rent-received").textContent = fmt(received);
   $("#rent-pending").textContent = fmt(pending);
-  $("#rent-tenants").textContent = allTenants;
+  $("#rent-partial").textContent = fmt(partial);
+  $("#rent-tenants").textContent = tenantCount;
+  
   renderReports();
+}
+
+// ========== WhatsApp Integration ==========
+function sendWhatsAppMessage(rent) {
+  // Generate WhatsApp message based on status
+  let message = `नमस्ते ${rent.tenant} 🙏\n\n`;
+  message += `महीना: ${rent.month} ${rent.yearMonth.split('-')[0]}\n`;
+  
+  if(rent.status === "Pending") {
+    message += `\n⏳ आपका किराया अभी *लंबित* है:\n`;
+    message += `💰 किराया: ₹${rent.amount}\n`;
+    if(rent.lightBill && rent.lightBill > 0) {
+      message += `💡 लाइट बिल: ₹${rent.lightBill}\n`;
+      message += `─────────────\n`;
+      message += `📊 कुल: ₹${rent.totalAmount || rent.amount}\n`;
+    }
+    message += `\nकृपया जल्दी भुगतान करें। धन्यवाद! 🙏`;
+  } else if(rent.status === "Partial") {
+    message += `\n◐ आपका किराया *आंशिक* प्राप्त हुआ:\n`;
+    message += `✓ प्राप्त: ₹${rent.amount}\n`;
+    if(rent.lightBill && rent.lightBill > 0) {
+      message += `💡 लाइट बिल: ₹${rent.lightBill}\n`;
+      message += `📊 कुल: ₹${rent.totalAmount || rent.amount}\n`;
+    }
+    message += `\nकृपया शेष राशि भेजें। धन्यवाद! 🙏`;
+  } else {
+    message += `\n✓ आपका किराया प्राप्त हो गया:\n`;
+    message += `💰 किराया: ₹${rent.amount}\n`;
+    if(rent.lightBill && rent.lightBill > 0) {
+      message += `💡 लाइट बिल: ₹${rent.lightBill}\n`;
+      message += `📊 कुल: ₹${rent.totalAmount || rent.amount}\n`;
+    }
+    message += `\nआपकी तुरंत भुगतान के लिए धन्यवाद! 🙏`;
+  }
+  
+  // Encode message for URL
+  const encodedMsg = encodeURIComponent(message);
+  const phone = rent.whatsapp.replace(/[^0-9]/g, '');
+  const whatsappUrl = `https://wa.me/91${phone}?text=${encodedMsg}`;
+  
+  // Open WhatsApp Web
+  window.open(whatsappUrl, '_blank');
+  
+  console.log("📱 WhatsApp link generated for:", rent.tenant, phone);
 }
 
 // =========================================================

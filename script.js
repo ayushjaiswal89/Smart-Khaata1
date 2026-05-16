@@ -44,12 +44,385 @@ function clearFieldError(input){
 
 // ---------- State ----------
 const state = store.get("smart-khaata1", {
-  home: [], rent: [], farm: [], settings: {goalExpense:0, goalRent:0, darkMode: false}
+  home: [], rent: [], farm: [], settings: {goalExpense:0, goalRent:0, darkMode: false, language: 'hi'}
 });
 
 let homeEditId = null;
 let homeSortField = 'date';
 let homeSortDir = -1; // descending
+
+const translations = {
+  hi: {
+    appTitle: 'Smart Khaata',
+    appSubtitle: 'Home • Rent • Farm',
+    tabHome: '🏠 Home',
+    tabRent: '🏢 Rent',
+    tabFarm: '🌾 Farm',
+    tabReports: '📊 Reports',
+    tabBackup: '🗄️ Backup',
+    tabSettings: '⚙️ Settings',
+    bannerText: 'अपने खर्च, किराया और खेती को एक ही जगह पर ट्रैक करें। डेटा आपका फोन में सुरक्षित रहता है।',
+    pullToRefresh: 'Pull to refresh',
+
+    homeTitle: '🏠 Home Expenses',
+    homeDescription: 'घर के खर्च जोड़ें, कैटेगरी के हिसाब से ट्रैक करें।',
+    labelDate: 'तारीख',
+    labelCategory: 'कैटेगरी',
+    categoryGrocery: 'किराना',
+    categoryUtility: 'यूटिलिटी',
+    categoryMedical: 'दवा',
+    categoryTransport: 'परिवहन',
+    categoryEducation: 'शिक्षा',
+    categoryOther: 'अन्य',
+    labelAmount: 'राशि (₹)',
+    labelNote: 'विवरण',
+    homeNotePlaceholder: 'उदा. दूध, सब्ज़ी, बिजली बिल...',
+    homeAddExpense: '➕ खर्च जोड़ें',
+    homeClear: 'सूची साफ़ करें',
+    homeMonthTotalLabel: 'इस माह कुल खर्च',
+    homeDailyAvgLabel: 'दैनिक औसत',
+    homeTopCategoryLabel: 'सबसे बड़ी कैटेगरी',
+    homeSearchPlaceholder: 'खोजें (कैटेगरी/विवरण)',
+    allMonths: 'सभी महीने',
+    homeExport: 'CSV एक्सपोर्ट',
+    homeDate: 'तारीख',
+    homeCategory: 'कैटेगरी',
+    homeDescriptionCol: 'विवरण',
+    homeAmount: 'राशि',
+
+    rentTitle: '🏢 Rent Income',
+    rentDescription: 'किराये की इनकम, देय/प्राप्ति और टेनेंट ट्रैक करें।',
+    labelTenant: 'टेनेंट',
+    labelMonth: 'महीना',
+    monthJan: 'Jan',
+    monthFeb: 'Feb',
+    monthMar: 'Mar',
+    monthApr: 'Apr',
+    monthMay: 'May',
+    monthJun: 'Jun',
+    monthJul: 'Jul',
+    monthAug: 'Aug',
+    monthSep: 'Sep',
+    monthOct: 'Oct',
+    monthNov: 'Nov',
+    monthDec: 'Dec',
+    labelWhatsapp: '📱 WhatsApp',
+    whatsappPlaceholder: 'जैसे 9876543210',
+    whatsappHelper: '10 अंकों का नंबर डालें या खाली छोड़ें।',
+    labelRentAmount: 'किराया (₹)',
+    labelStatus: 'स्टेटस',
+    statusReceived: 'Received',
+    statusPending: 'Pending',
+    statusPartial: 'Partial',
+    labelPrevReading: 'पहला रीडिंग',
+    labelCurrentReading: 'वर्तमान रीडिंग',
+    labelRatePerUnit: 'दर (₹/यूनिट)',
+    readingExample: 'जैसे 520',
+    readingExampleDecimal: 'जैसे 573.51',
+    labelUnitsAuto: 'यूनिट (ऑटो)',
+    labelLightBillAuto: 'बिजली बिल (₹) (ऑटो)',
+    labelTotalRentBill: 'कुल (किराया + बिल)',
+    zeroValue: '0.00',
+    rupeeZero: '₹0',
+    labelMeterPhoto: 'मीटर फोटो (वैकल्पिक)',
+    notePlaceholder: 'कोई विशेष जानकारी...',
+    rentAddIncome: '➕ इनकम जोड़ें',
+    rentClear: 'सूची साफ़ करें',
+    rentMonthTotalLabel: 'माह की कुल वसूली',
+    rentElectricTotalLabel: 'लाइट बिल कुल',
+    rentCombinedTotalLabel: 'माह कुल (Rent+Light)',
+    rentReceivedLabel: '✓ Received',
+    rentPendingLabel: '⏳ Pending',
+    rentPartialLabel: '◐ Partial',
+    rentTenantsLabel: 'टेनेंट्स',
+    rentSearchPlaceholder: 'टेनेंट/नोट खोजें',
+    rentExport: 'CSV एक्सपोर्ट',
+    rentDate: 'तारीख',
+    rentTenant: 'टेनेंट',
+    rentMonth: 'महीना',
+    rentUnits: 'इकाइयाँ',
+    rentLightBill: 'लाइट बिल',
+    rentTotal: 'कुल',
+    rentStatus: 'स्टेटस',
+    rentAmount: 'राशि',
+
+    farmTitle: '🌾 Farm Management',
+    farmDescription: 'खर्च/उत्पादन/बिक्री—एक ही जगह।',
+    farmButtonExpense: '+ Expense',
+    farmButtonYield: '+ Yield',
+    farmButtonSale: '+ Sale',
+    labelType: 'टाइप',
+    farmTypeExpense: 'Expense',
+    farmTypeYield: 'Yield',
+    farmTypeSale: 'Sale',
+    labelCrop: 'फ़सल',
+    cropWheat: 'Wheat',
+    cropRice: 'Rice',
+    cropSoybean: 'Soybean',
+    cropCotton: 'Cotton',
+    cropOther: 'Other',
+    labelExpenseCategory: 'खर्च की श्रेणी',
+    selectCategory: '',
+    expenseSeed: 'बीज',
+    expenseFertilizer: 'खाद',
+    expenseLabor: 'मजदूरी',
+    expenseDiesel: 'डीजल',
+    expenseIrrigation: 'सिंचाई',
+    labelQuantity: 'मात्रा',
+    labelUnit: 'यूनिट',
+    labelPrice: 'कीमत (₹)',
+    unitKg: 'Kg',
+    unitQuintal: 'Quintal',
+    unitTon: 'Ton',
+    farmAddRecord: '➕ रिकॉर्ड जोड़ें',
+    farmTotalExpense: 'कुल खर्च',
+    farmTotalSales: 'कुल बिक्री',
+    farmProfit: 'लाभ',
+    farmSearchPlaceholder: 'खोजें (फ़सल/नोट)',
+    allTypes: 'सभी टाइप',
+    farmExport: 'CSV एक्सपोर्ट',
+    farmGraphLabel: 'Expense vs Sale',
+    farmDate: 'तारीख ⬍',
+    farmType: 'टाइप',
+    farmCrop: 'फ़सल',
+    farmAmount: 'राशि ⬍',
+    farmNote: 'नोट',
+    farmAction: 'Action',
+
+    reportsTitle: '📊 Reports & Insights',
+    reportRefresh: 'Refresh',
+    reportsSummary: 'समरी',
+    reportsHome: 'Home खर्च',
+    reportsRent: 'Rent प्राप्ति',
+    reportsFarm: 'Farm प्रॉफिट',
+    reportsNetBalance: 'Net Balance',
+    reportsMonthlyTrend: 'मासिक ट्रेंड',
+    reportsRentLabel: 'Rent',
+    reportsHomeLabel: 'Home',
+    reportsLegend: 'नीला = Rent, हरा = Home',
+
+    backupTitle: '🗄️ Backup / Restore',
+    backupExport: 'JSON Export',
+    backupImport: 'JSON Import',
+    backupTextareaPlaceholder: 'यहाँ JSON दिखेगा…',
+    backupWarning: 'Import करने पर मौजूदा डेटा बदल सकता है। पहले Export ले लें।',
+
+    settingsTitle: '⚙️ Settings',
+    labelGoalExpense: 'महीने का खर्च लक्ष्य',
+    expenseGoalPlaceholder: 'उदा. 15000',
+    labelGoalRent: 'किराया लक्ष्य',
+    rentGoalPlaceholder: 'उदा. 12000',
+    labelLanguage: 'भाषा / Language',
+    labelDarkMode: 'डार्क मोड',
+    darkModeNote: 'रात में आरामदायक व्यू',
+    saveSettings: 'सेव',
+    languageHelper: 'भाषा बदलने के बाद सेव करें।',
+    savedMessage: 'सेव हुआ!',
+    footerText: 'Smart Khaata • खर्च, किराया, खेती — सब एक जगह'
+  },
+  en: {
+    appTitle: 'Smart Khaata',
+    appSubtitle: 'Home • Rent • Farm',
+    tabHome: '🏠 Home',
+    tabRent: '🏢 Rent',
+    tabFarm: '🌾 Farm',
+    tabReports: '📊 Reports',
+    tabBackup: '🗄️ Backup',
+    tabSettings: '⚙️ Settings',
+    bannerText: 'Track home, rent and farm in one place. Your data stays on your phone.',
+    pullToRefresh: 'Pull to refresh',
+
+    homeTitle: '🏠 Home Expenses',
+    homeDescription: 'Track household spending and categorize it easily.',
+    labelDate: 'Date',
+    labelCategory: 'Category',
+    categoryGrocery: 'Grocery',
+    categoryUtility: 'Utility',
+    categoryMedical: 'Medical',
+    categoryTransport: 'Transport',
+    categoryEducation: 'Education',
+    categoryOther: 'Other',
+    labelAmount: 'Amount (₹)',
+    labelNote: 'Note',
+    homeNotePlaceholder: 'e.g. milk, vegetables, electricity bill...',
+    homeAddExpense: '➕ Add Expense',
+    homeClear: 'Clear list',
+    homeMonthTotalLabel: 'Month total',
+    homeDailyAvgLabel: 'Daily average',
+    homeTopCategoryLabel: 'Top category',
+    homeSearchPlaceholder: 'Search (category/note)',
+    allMonths: 'All months',
+    homeExport: 'Export CSV',
+    homeDate: 'Date',
+    homeCategory: 'Category',
+    homeDescriptionCol: 'Note',
+    homeAmount: 'Amount',
+
+    rentTitle: '🏢 Rent Income',
+    rentDescription: 'Track rent payments, due amounts, and tenants.',
+    labelTenant: 'Tenant',
+    labelMonth: 'Month',
+    monthJan: 'Jan',
+    monthFeb: 'Feb',
+    monthMar: 'Mar',
+    monthApr: 'Apr',
+    monthMay: 'May',
+    monthJun: 'Jun',
+    monthJul: 'Jul',
+    monthAug: 'Aug',
+    monthSep: 'Sep',
+    monthOct: 'Oct',
+    monthNov: 'Nov',
+    monthDec: 'Dec',
+    labelWhatsapp: '📱 WhatsApp',
+    whatsappPlaceholder: 'e.g. 9876543210',
+    whatsappHelper: 'Enter a 10 digit number or leave blank.',
+    labelRentAmount: 'Rent (₹)',
+    labelStatus: 'Status',
+    statusReceived: 'Received',
+    statusPending: 'Pending',
+    statusPartial: 'Partial',
+    labelPrevReading: 'Prev reading',
+    labelCurrentReading: 'Current reading',
+    labelRatePerUnit: 'Rate (₹/unit)',
+    readingExample: 'e.g. 520',
+    readingExampleDecimal: 'e.g. 573.51',
+    labelUnitsAuto: 'Units (auto)',
+    labelLightBillAuto: 'Light bill (₹) (auto)',
+    labelTotalRentBill: 'Total (rent + bill)',
+    zeroValue: '0.00',
+    rupeeZero: '₹0',
+    labelMeterPhoto: 'Meter photo (optional)',
+    notePlaceholder: 'Additional notes...',
+    rentAddIncome: '➕ Add Income',
+    rentClear: 'Clear list',
+    rentMonthTotalLabel: 'Month total collected',
+    rentElectricTotalLabel: 'Light bill total',
+    rentCombinedTotalLabel: 'Month total (Rent+Light)',
+    rentReceivedLabel: '✓ Received',
+    rentPendingLabel: '⏳ Pending',
+    rentPartialLabel: '◐ Partial',
+    rentTenantsLabel: 'Tenants',
+    rentSearchPlaceholder: 'Search tenant/note',
+    rentExport: 'Export CSV',
+    rentDate: 'Date',
+    rentTenant: 'Tenant',
+    rentMonth: 'Month',
+    rentUnits: 'Units',
+    rentLightBill: 'Light bill',
+    rentTotal: 'Total',
+    rentStatus: 'Status',
+    rentAmount: 'Amount',
+
+    farmTitle: '🌾 Farm Management',
+    farmDescription: 'Expense, yield and sale in one place.',
+    farmButtonExpense: '+ Expense',
+    farmButtonYield: '+ Yield',
+    farmButtonSale: '+ Sale',
+    labelType: 'Type',
+    farmTypeExpense: 'Expense',
+    farmTypeYield: 'Yield',
+    farmTypeSale: 'Sale',
+    labelCrop: 'Crop',
+    cropWheat: 'Wheat',
+    cropRice: 'Rice',
+    cropSoybean: 'Soybean',
+    cropCotton: 'Cotton',
+    cropOther: 'Other',
+    labelExpenseCategory: 'Expense category',
+    selectCategory: '',
+    expenseSeed: 'Seed',
+    expenseFertilizer: 'Fertilizer',
+    expenseLabor: 'Labor',
+    expenseDiesel: 'Diesel',
+    expenseIrrigation: 'Irrigation',
+    labelQuantity: 'Quantity',
+    labelUnit: 'Unit',
+    labelPrice: 'Price (₹)',
+    unitKg: 'Kg',
+    unitQuintal: 'Quintal',
+    unitTon: 'Ton',
+    farmAddRecord: '➕ Add Record',
+    farmTotalExpense: 'Total expense',
+    farmTotalSales: 'Total sales',
+    farmProfit: 'Profit',
+    farmSearchPlaceholder: 'Search crop/note',
+    allTypes: 'All types',
+    farmExport: 'Export CSV',
+    farmGraphLabel: 'Expense vs Sale',
+    farmDate: 'Date ⬍',
+    farmType: 'Type',
+    farmCrop: 'Crop',
+    farmAmount: 'Amount ⬍',
+    farmNote: 'Note',
+    farmAction: 'Action',
+
+    reportsTitle: '📊 Reports & Insights',
+    reportRefresh: 'Refresh',
+    reportsSummary: 'Summary',
+    reportsHome: 'Home spend',
+    reportsRent: 'Rent income',
+    reportsFarm: 'Farm profit',
+    reportsNetBalance: 'Net Balance',
+    reportsMonthlyTrend: 'Monthly trend',
+    reportsRentLabel: 'Rent',
+    reportsHomeLabel: 'Home',
+    reportsLegend: 'Blue = Rent, Green = Home',
+
+    backupTitle: '🗄️ Backup / Restore',
+    backupExport: 'JSON Export',
+    backupImport: 'JSON Import',
+    backupTextareaPlaceholder: 'JSON will appear here…',
+    backupWarning: 'Import will replace existing data. Export first.',
+
+    settingsTitle: '⚙️ Settings',
+    labelGoalExpense: 'Monthly expense goal',
+    expenseGoalPlaceholder: 'e.g. 15000',
+    labelGoalRent: 'Rent goal',
+    rentGoalPlaceholder: 'e.g. 12000',
+    labelLanguage: 'Language',
+    labelDarkMode: 'Dark mode',
+    darkModeNote: 'Comfortable night view',
+    saveSettings: 'Save',
+    languageHelper: 'Change language and save to apply.',
+    savedMessage: 'Saved!',
+    footerText: 'Smart Khaata • Expense, Rent, Farm — all in one place'
+  }
+};
+
+function applyTranslationValues(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const text = translations[lang]?.[key];
+    if(text === undefined) return;
+    if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      if(el.hasAttribute('placeholder')) {
+        el.placeholder = text;
+      } else {
+        el.value = text;
+      }
+    } else {
+      el.textContent = text;
+    }
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    const text = translations[lang]?.[key];
+    if(text !== undefined) el.placeholder = text;
+  });
+
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.dataset.i18nTitle;
+    const text = translations[lang]?.[key];
+    if(text !== undefined) el.title = text;
+  });
+}
+
+function translatePage(lang) {
+  document.documentElement.lang = lang;
+  applyTranslationValues(lang);
+}
 
 // ---------- Safe download (Android + iPhone fix) ----------
 function download(filename, text, mime="application/vnd.ms-excel") {
@@ -230,6 +603,10 @@ function addPullToRefresh() {
   });
 }
 
+function applyLanguage(lang){
+  translatePage(lang);
+}
+
 function setupEventListeners() {
   const homeClr = $("#home-clear");
   if(homeClr) homeClr.onclick = ()=>{
@@ -327,6 +704,10 @@ function setupEventListeners() {
     if(rentForm.elements.amount){
       rentForm.elements.amount.addEventListener('input', ()=> clearFieldError(rentForm.elements.amount));
     }
+  }
+  const languageSelect = $("#language-select");
+  if(languageSelect){
+    languageSelect.onchange = () => applyLanguage(languageSelect.value);
   }
 
   const rentPhoto = $("#rent-meter-photo");
@@ -1099,15 +1480,26 @@ function loadSettings(){
   $("#goal-expense").value = state.settings.goalExpense || 0;
   $("#goal-rent").value = state.settings.goalRent || 0;
   $("#dark-mode-toggle").checked = state.settings.darkMode || false;
+  const languageSelect = $("#language-select");
+  if(languageSelect){
+    languageSelect.value = state.settings.language || 'hi';
+  }
   document.body.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
+  applyLanguage(state.settings.language || 'hi');
 }
 
 $("#save-settings").onclick = ()=>{
   state.settings.goalExpense = Number($("#goal-expense").value||0);
   state.settings.goalRent    = Number($("#goal-rent").value||0);
+  const languageSelect = $("#language-select");
+  if(languageSelect){
+    state.settings.language = languageSelect.value || 'hi';
+  }
   store.set("smart-khaata1", state);
+  applyLanguage(state.settings.language);
 
-  $("#save-msg").textContent = "सेव हुआ!";
+  const saveText = translations[state.settings.language]?.savedMessage || (state.settings.language === 'en' ? 'Saved!' : 'सेव हुआ!');
+  $("#save-msg").textContent = saveText;
   setTimeout(()=> $("#save-msg").textContent="",1500);
 
   renderReports();

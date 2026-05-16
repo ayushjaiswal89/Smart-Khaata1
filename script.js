@@ -11,10 +11,45 @@ const store = {
   }
 };
 
+function validatePhoneNumber(value){
+  const digits = String(value||"").replace(/\D/g, '');
+  return digits.length === 10;
+}
+
+function normalizePhone(value){
+  return String(value||"").replace(/\D/g, '').slice(-10);
+}
+
+function setFieldError(input, message){
+  if(!input) return;
+  input.classList.add('input-error');
+  input.setAttribute('aria-invalid','true');
+  const existing = input.parentElement.querySelector('.error-text');
+  if(existing) existing.remove();
+  if(message){
+    const note = document.createElement('div');
+    note.className = 'helper-text error-text';
+    note.textContent = message;
+    input.parentElement.appendChild(note);
+  }
+}
+
+function clearFieldError(input){
+  if(!input) return;
+  input.classList.remove('input-error');
+  input.removeAttribute('aria-invalid');
+  const existing = input.parentElement.querySelector('.error-text');
+  if(existing) existing.remove();
+}
+
 // ---------- State ----------
 const state = store.get("smart-khaata1", {
-  home: [], rent: [], farm: [], settings: {goalExpense:0, goalRent:0}
+  home: [], rent: [], farm: [], settings: {goalExpense:0, goalRent:0, darkMode: false}
 });
+
+let homeEditId = null;
+let homeSortField = 'date';
+let homeSortDir = -1; // descending
 
 // ---------- Safe download (Android + iPhone fix) ----------
 function download(filename, text, mime="application/vnd.ms-excel") {
@@ -111,25 +146,47 @@ function seedMonthSelects(){
 
   fill("#home-month-filter");
   fill("#rent-month-filter");
+  fill("#report-month-filter");
 }
 
 // =========================================================
 // ---------------------- HOME -----------------------------
 // =========================================================
 
-$("#form-home").date.value = todayStr();
+$("#form-home").addEventListener("reset", () => {
+  homeEditId = null;
+  $("#form-home button[type='submit']").textContent = "➕ खर्च जोड़ें";
+});
 
 $("#form-home").addEventListener("submit", e=>{
   e.preventDefault();
   const f = e.target;
 
-  state.home.unshift({
-    id: crypto.randomUUID(),
-    date: f.date.value,
-    category: f.category.value,
-    amount: Number(f.amount.value||0),
-    note: f.note.value.trim()
-  });
+  if(homeEditId) {
+    // Update existing record
+    const index = state.home.findIndex(x => x.id === homeEditId);
+    if(index !== -1) {
+      state.home[index] = {
+        ...state.home[index],
+        date: f.date.value,
+        category: f.category.value,
+        amount: Number(f.amount.value||0),
+        note: f.note.value.trim()
+      };
+    }
+    homeEditId = null;
+    f.querySelector('button[type="submit"]').textContent = "➕ खर्च जोड़ें";
+  } else {
+    // Add new record
+    state.home.unshift({
+
+      id: crypto.randomUUID(),
+      date: f.date.value,
+      category: f.category.value,
+      amount: Number(f.amount.value||0),
+      note: f.note.value.trim()
+    });
+  }
 
   store.set("smart-khaata1", state);
 
@@ -139,6 +196,39 @@ $("#form-home").addEventListener("submit", e=>{
   renderHome(); 
   seedMonthSelects();
 });
+
+function addPullToRefresh() {
+  const indicator = $("#pull-indicator");
+  let startY = 0;
+  let isPulling = false;
+
+  window.addEventListener('touchstart', e => {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    if (scrollTop === 0) {
+      startY = e.touches[0].clientY;
+    }
+  });
+
+  window.addEventListener('touchmove', e => {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    if (scrollTop === 0 && startY > 0) {
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - startY;
+      if (diff > 60) {
+        isPulling = true;
+        indicator.classList.add('show');
+      }
+    }
+  });
+  window.addEventListener('touchend', e => {
+    if (isPulling) {
+      indicator.classList.remove('show');
+      renderAll();
+      isPulling = false;
+    }
+    startY = 0;
+  });
+}
 
 function setupEventListeners() {
   const homeClr = $("#home-clear");
@@ -228,6 +318,15 @@ function setupEventListeners() {
       const input = rentForm.elements[name];
       if(input) input.addEventListener("input", updateRentBillFields);
     });
+    if(rentForm.elements.whatsapp){
+      rentForm.elements.whatsapp.addEventListener('input', ()=> clearFieldError(rentForm.elements.whatsapp));
+    }
+    if(rentForm.elements.tenant){
+      rentForm.elements.tenant.addEventListener('input', ()=> clearFieldError(rentForm.elements.tenant));
+    }
+    if(rentForm.elements.amount){
+      rentForm.elements.amount.addEventListener('input', ()=> clearFieldError(rentForm.elements.amount));
+    }
   }
 
   const rentPhoto = $("#rent-meter-photo");
@@ -241,6 +340,21 @@ function setupEventListeners() {
   
   const farmTypeFlt = $("#farm-type-filter");
   if(farmTypeFlt) farmTypeFlt.onchange = renderFarm;
+
+  const reportRefresh = $("#report-refresh");
+  if(reportRefresh) reportRefresh.onclick = renderReports;
+
+  const reportMonthFlt = $("#report-month-filter");
+  if(reportMonthFlt) reportMonthFlt.onchange = renderReports;
+
+  const darkModeToggle = $("#dark-mode-toggle");
+  if(darkModeToggle) darkModeToggle.onchange = ()=>{
+    state.settings.darkMode = darkModeToggle.checked;
+    store.set("smart-khaata1", state);
+    document.body.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
+  };
+
+  addPullToRefresh();
 }
 
 function filteredHome(){
@@ -254,18 +368,46 @@ function filteredHome(){
 }
 
 function renderHome(){
+  const selectedMonth = $("#home-month-filter").value;
+  const currentMonth = monthKey();
+  const activeMonth = selectedMonth || currentMonth;
   const rows = filteredHome();
   const tbody = $("#home-table tbody");
 
-  tbody.innerHTML = rows.map(r=>`
-    <tr>
-      <td data-label="तारीख">${r.date}</td>
-      <td data-label="कैटेगरी">${r.category}</td>
-      <td data-label="विवरण">${r.note||""}</td>
-      <td data-label="राशि"><span class="pill neg">${fmt(r.amount)}</span></td>
-      <td><button class="btn secondary small" data-del="${r.id}">हटाएँ</button></td>
-    </tr>
-  `).join("");
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5" class="empty-cell">कोई खर्च रिकॉर्ड नहीं मिला। नया खर्च जोड़ें और इसे तुरंत ट्रैक करें।</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td data-label="तारीख">${r.date}</td>
+        <td data-label="कैटेगरी">${r.category}</td>
+        <td data-label="विवरण">${r.note||""}</td>
+        <td data-label="राशि"><span class="pill neg">${fmt(r.amount)}</span></td>
+        <td>
+          <button class="btn secondary small" data-edit="${r.id}" style="margin-right:4px">✏️</button>
+          <button class="btn secondary small" data-del="${r.id}">हटाएँ</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  tbody.querySelectorAll("[data-edit]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const row = state.home.find(x => x.id === btn.dataset.edit);
+      if(!row) return;
+
+      homeEditId = row.id;
+      const f = $("#form-home");
+      f.date.value = row.date;
+      f.category.value = row.category;
+      f.amount.value = row.amount;
+      f.note.value = row.note;
+
+      f.querySelector('button[type="submit"]').textContent = "💾 अपडेट करें";
+      f.querySelector('input[name="date"]').focus();
+      openTab("home");
+    };
+  });
 
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
@@ -275,23 +417,52 @@ function renderHome(){
     };
   });
 
-  const tm = state.home
-    .filter(x=>monthKey(x.date)===monthKey())
-    .reduce((a,b)=>a+b.amount,0);
+  const monthRows = state.home.filter(x => monthKey(x.date) === activeMonth);
+  const monthTotal = monthRows.reduce((a,b)=>a+b.amount,0);
 
-  $("#home-month-total").textContent = fmt(tm);
+  $("#home-month-total").textContent = fmt(monthTotal);
 
-  const goal = state.settings.goalExpense || 1;
-  $("#home-month-bar").style.width = (tm/goal*100)+"%";
+  const goal = Math.max(1, state.settings.goalExpense || 0);
+  $("#home-month-bar").style.width = Math.min(100, (monthTotal/goal*100)) + "%";
 
   const byCat = {};
-  state.home.forEach(x=> byCat[x.category]=(byCat[x.category]||0)+x.amount);
+  monthRows.forEach(x=> byCat[x.category] = (byCat[x.category]||0) + x.amount);
 
-  $("#home-top-cat").textContent = 
+  $("#home-top-cat").textContent =
     Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
 
-  $("#home-daily-avg").textContent = fmt(tm / new Date().getDate());
+  const avgDays = selectedMonth && selectedMonth !== currentMonth
+    ? new Date(Number(activeMonth.slice(0,4)), Number(activeMonth.slice(5)), 0).getDate()
+    : new Date().getDate();
+
+  $("#home-daily-avg").textContent = fmt(monthTotal / Math.max(1, avgDays));
   renderReports();
+}
+
+function sortHome(field) {
+  if (homeSortField === field) {
+    homeSortDir = -homeSortDir;
+  } else {
+    homeSortField = field;
+    homeSortDir = field === 'date' ? -1 : 1; // date descending, others ascending
+  }
+  state.home.sort((a, b) => {
+    let va, vb;
+    if (field === 'date') {
+      va = new Date(a.date);
+      vb = new Date(b.date);
+    } else if (field === 'amount') {
+      va = a.amount;
+      vb = b.amount;
+    } else {
+      va = a[field] || '';
+      vb = b[field] || '';
+    }
+    if (va < vb) return -homeSortDir;
+    if (va > vb) return homeSortDir;
+    return 0;
+  });
+  renderHome();
 }
 
 // =========================================================
@@ -414,12 +585,33 @@ $("#form-rent").addEventListener("submit", e=>{
   e.preventDefault();
   const f = e.target;
 
+  clearFieldError(f.tenant);
+  clearFieldError(f.amount);
+  clearFieldError(f.whatsapp);
+
+  let hasError = false;
+  const tenant = f.tenant.value.trim();
+  const rentAmount = Number(f.amount.value || 0);
+  const whatsappRaw = f.whatsapp.value.trim();
+
+  if(!tenant){
+    setFieldError(f.tenant, "कृपया टेनेंट नाम दर्ज करें।");
+    hasError = true;
+  }
+  if(rentAmount <= 0){
+    setFieldError(f.amount, "कृपया सही किराया राशि दर्ज करें।");
+    hasError = true;
+  }
+  if(whatsappRaw && !validatePhoneNumber(whatsappRaw)){
+    setFieldError(f.whatsapp, "10 अंकों का वैध WhatsApp नंबर दर्ज करें।");
+    hasError = true;
+  }
+  if(hasError) return;
+
   const ym = f.date.value.slice(0,4) + "-" + {
     Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",
     Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"
   }[f.month.value];
-
-  const tenant = f.tenant.value.trim();
 
   // Fix #5: Duplicate Prevention - Check if same tenant + month exists
   const existingEntry = state.rent.find(x => x.tenant === tenant && x.yearMonth === ym);
@@ -480,20 +672,24 @@ function renderRent(){
   const rows = filteredRent();
   const tbody = $("#rent-table tbody");
 
-  tbody.innerHTML = rows.map(r=>`
-    <tr>
-      <td data-label="तारीख">${r.date}</td>
-      <td data-label="टेनेंट">${r.tenant}</td>
-      <td data-label="महीना">${r.month}</td>
-      <td data-label="राशि"><span class="pill pos">${fmt(r.amount)}</span></td>
-      <td data-label="इकाइयाँ">${typeof r.units !== 'undefined' ? Number(r.units).toFixed(2) : ""}</td>
-      <td data-label="लाइट बिल"><span class="pill neg">${fmt(r.lightBill || 0)}</span></td>
-      <td data-label="कुल"><span class="pill pos">${fmt(r.totalAmount ?? r.amount)}</span></td>
-      <td data-label="स्टेटस"><span class="pill ${r.status === 'Received' ? 'pos' : r.status === 'Pending' ? 'neg' : 'neutral'}">${r.status}</span></td>
-      <td data-label="📱 WhatsApp">${r.whatsapp ? `<button class="btn secondary small" data-send-wa="${r.id}">📱 भेजें</button>` : "—"}</td>
-      <td><button class="btn secondary small" data-del="${r.id}">हटाएँ</button></td>
-    </tr>
-  `).join("");
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10" class="empty-cell">कोई रिकॉर्ड नहीं मिला। नया किराया विवरण जोड़ें और मासिक इनकम साफ़ रखें।</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td data-label="तारीख">${r.date}</td>
+        <td data-label="टेनेंट">${r.tenant}</td>
+        <td data-label="महीना">${r.month}</td>
+        <td data-label="राशि"><span class="pill pos">${fmt(r.amount)}</span></td>
+        <td data-label="इकाइयाँ">${typeof r.units !== 'undefined' ? Number(r.units).toFixed(2) : ""}</td>
+        <td data-label="लाइट बिल"><span class="pill neg">${fmt(r.lightBill || 0)}</span></td>
+        <td data-label="कुल"><span class="pill pos">${fmt(r.totalAmount ?? r.amount)}</span></td>
+        <td data-label="स्टेटस"><span class="pill ${r.status === 'Received' ? 'pos' : r.status === 'Pending' ? 'neg' : 'warn'}">${r.status}</span></td>
+        <td data-label="📱 WhatsApp">${validatePhoneNumber(r.whatsapp) ? `<button class="btn secondary small" data-send-wa="${r.id}">📱 भेजें</button>` : (r.whatsapp ? 'नंबर गलत' : '—')}</td>
+        <td><button class="btn secondary small" data-del="${r.id}">हटाएँ</button></td>
+      </tr>
+    `).join("");
+  }
 
   tbody.querySelectorAll("[data-send-wa]").forEach(btn=>{
     btn.onclick = ()=>{
@@ -723,19 +919,23 @@ function renderFarm(){
   const rows = filteredFarm();
   const tbody = $("#farm-table tbody");
 
-  tbody.innerHTML = rows.map(r=>`
-    <tr>
-      <td data-label="तारीख">${r.date}</td>
-      <td data-label="टाइप">${r.type}</td>
-      <td data-label="फ़सल">${r.crop}</td>
-      <td data-label="विवरण"><span class="pill ${r.type==='Expense'?'neg':'pos'}">${getDisplayValue(r)}</span></td>
-      <td data-label="नोट">${r.note||""}</td>
-      <td>
-        <button class="btn secondary small" data-edit="${r.id}" style="margin-right:4px">✏️</button>
-        <button class="btn secondary small" data-del="${r.id}">🗑️</button>
-      </td>
-    </tr>
-  `).join("");
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6" class="empty-cell">कोई खेत रिकॉर्ड नहीं मिला। Expense, Yield या Sale जोड़कर शुरू करें।</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td data-label="तारीख">${r.date}</td>
+        <td data-label="टाइप">${r.type}</td>
+        <td data-label="फ़सल">${r.crop}</td>
+        <td data-label="विवरण"><span class="pill ${r.type==='Expense'?'neg':'pos'}">${getDisplayValue(r)}</span></td>
+        <td data-label="नोट">${r.note||""}</td>
+        <td>
+          <button class="btn secondary small" data-edit="${r.id}" style="margin-right:4px">✏️</button>
+          <button class="btn secondary small" data-del="${r.id}">🗑️</button>
+        </td>
+      </tr>
+    `).join("");
+  }
 
   tbody.querySelectorAll("[data-edit]").forEach(btn=>{
     btn.onclick = ()=>{
@@ -838,17 +1038,26 @@ function sortFarm(field) {
 
 
 function renderReports(){
-  const homeTotal = state.home.reduce((a,b)=>a+b.amount,0);
-  const rentTotal = state.rent.filter(x=>x.status!="Pending").reduce((a,b)=>a+b.amount,0);
-  const sale = state.farm.filter(x=>x.type==="Sale").reduce((a,b)=>a+(b.quantity*b.price||0),0);
-  const exp  = state.farm.filter(x=>x.type==="Expense").reduce((a,b)=>a+(b.amount||0),0);
+  const selectedMonth = $("#report-month-filter")?.value;
+  const filteredHome = selectedMonth ? state.home.filter(x=>monthKey(x.date)===selectedMonth) : state.home;
+  const filteredRent = selectedMonth ? state.rent.filter(x=>x.yearMonth===selectedMonth) : state.rent;
+  const filteredFarm = selectedMonth ? state.farm.filter(x=>monthKey(x.date)===selectedMonth) : state.farm;
+
+  const homeTotal = filteredHome.reduce((a,b)=>a+b.amount,0);
+  const rentTotal = filteredRent.reduce((a,b)=>a+(b.totalAmount ?? b.amount ?? 0),0);
+  const farmSales = filteredFarm.filter(x=>x.type==="Sale").reduce((a,b)=>a+(b.quantity*b.price||0),0);
+  const farmExpense = filteredFarm.filter(x=>x.type==="Expense").reduce((a,b)=>a+(b.amount||0),0);
+  const farmProfit = farmSales - farmExpense;
+  const netBalance = rentTotal + farmProfit - homeTotal;
 
   $("#r-home").textContent = fmt(homeTotal);
   $("#r-rent").textContent = fmt(rentTotal);
-  $("#r-farm").textContent = fmt(sale - exp);
+  $("#r-farm").textContent = fmt(farmProfit);
+  $("#r-balance").textContent = fmt(netBalance);
 
-  const sum = Math.max(1, homeTotal + rentTotal);
-  $("#r-ratio").style.width = (rentTotal/sum*100)+"%";
+  const totalComparison = Math.max(1, homeTotal + rentTotal);
+  $("#r-ratio").style.width = (rentTotal/totalComparison*100)+"%";
+  if($("#r-home-ratio")) $("#r-home-ratio").style.width = (homeTotal/totalComparison*100)+"%";
 }
 
 // =========================================================
@@ -864,6 +1073,11 @@ $("#backup-export").onclick = ()=>{
 $("#backup-import").onchange = async e=>{
   const file = e.target.files[0];
   if(!file) return;
+
+  if(!confirm("Backup import करने से मौजूदा डेटा बदल जाएगा। क्या आप जारी रखना चाहते हैं?")){
+    e.target.value = "";
+    return;
+  }
 
   try{
     const d = JSON.parse(await file.text());
@@ -884,6 +1098,8 @@ $("#backup-import").onchange = async e=>{
 function loadSettings(){
   $("#goal-expense").value = state.settings.goalExpense || 0;
   $("#goal-rent").value = state.settings.goalRent || 0;
+  $("#dark-mode-toggle").checked = state.settings.darkMode || false;
+  document.body.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
 }
 
 $("#save-settings").onclick = ()=>{

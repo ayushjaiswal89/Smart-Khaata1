@@ -63,6 +63,10 @@
     </div>
   </header>
 
+  <div class="app-banner">
+    <div class="muted">अपने खर्च, किराया और खेती को एक ही जगह पर ट्रैक करें। डेटा आपका फोन में सुरक्षित रहता है।</div>
+  </div>
+
   <!-- MOBILE SLIDE MENU -->
   <aside id="mobile-menu" class="slide-menu" aria-hidden="true">
     <button data-tab="home">🏠 Home</button>
@@ -73,12 +77,15 @@
     <button data-tab="settings">⚙️ Settings</button>
   </aside>
 
+  <!-- PULL TO REFRESH INDICATOR -->
+  <div id="pull-indicator">Pull to refresh</div>
+
   <!-- BOTTOM NAV (mobile) -->
   <nav class="bottom-nav" aria-hidden="true">
-    <button data-tab="home">🏠</button>
-    <button data-tab="rent">🏢</button>
-    <button data-tab="farm">🌾</button>
-    <button data-tab="reports">📊</button>
+    <button data-tab="home" title="Home">🏠</button>
+    <button data-tab="rent" title="Rent">🏢</button>
+    <button data-tab="farm" title="Farm">🌾</button>
+    <button data-tab="reports" title="Reports">📊</button>
     <button id="fab-export" title="Export">⬇️</button>
   </nav>
 
@@ -147,7 +154,7 @@
 
           <div class="table-wrap">
             <table id="home-table">
-              <thead><tr><th>तारीख</th><th>कैटेगरी</th><th>विवरण</th><th>राशि</th><th></th></tr></thead>
+              <thead><tr><th onclick="sortHome('date')">तारीख</th><th onclick="sortHome('category')">कैटेगरी</th><th>विवरण</th><th onclick="sortHome('amount')">राशि</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -174,7 +181,7 @@
                   <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
                 </select>
               </div>
-              <div class="col-3"><label>📱 WhatsApp</label><input type="tel" name="whatsapp" placeholder="जैसे 9876543210" /></div>
+              <div class="col-3"><label>📱 WhatsApp</label><input type="tel" name="whatsapp" placeholder="जैसे 9876543210" inputmode="numeric" pattern="[0-9]{10}" /><div class="helper-text">10 अंकों का नंबर डालें या खाली छोड़ें।</div></div>
             </div>
             
             <!-- Rent & Status -->
@@ -434,6 +441,10 @@
     <!-- REPORTS -->
     <section class="tab card hidden" id="tab-reports">
       <h2>📊 Reports & Insights</h2>
+      <div class="toolbar">
+        <select id="report-month-filter"><option value="">सभी महीने</option></select>
+        <button class="btn secondary small" id="report-refresh">Refresh</button>
+      </div>
       <div class="grid">
         <div class="card">
           <h3>समरी</h3>
@@ -441,13 +452,19 @@
             <div class="box"><div class="small muted">Home खर्च</div><div class="val" id="r-home">₹0</div></div>
             <div class="box"><div class="small muted">Rent प्राप्ति</div><div class="val" id="r-rent">₹0</div></div>
             <div class="box"><div class="small muted">Farm प्रॉफिट</div><div class="val" id="r-farm">₹0</div></div>
+            <div class="box"><div class="small muted">Net Balance</div><div class="val" id="r-balance">₹0</div></div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card report-chart-card">
           <h3>मासिक ट्रेंड</h3>
-          <div class="bar" style="height:16px;margin:10px 0"><div class="fill" id="r-ratio" style="width:50%"></div></div>
-          <div class="muted small">नीला = Rent, हरा = Home तुलना</div>
+          <div class="report-chart">
+            <div class="report-bar-label">Rent</div>
+            <div class="bar"><div class="fill" id="r-ratio" style="width:50%"></div></div>
+            <div class="report-bar-label">Home</div>
+            <div class="bar"><div class="fill green" id="r-home-ratio" style="width:50%"></div></div>
+          </div>
+          <div class="muted small">नीला = Rent, हरा = Home</div>
         </div>
       </div>
     </section>
@@ -461,14 +478,24 @@
         <input type="file" id="backup-import" class="hidden" accept="application/json" />
       </div>
       <textarea id="backup-text" rows="8" placeholder="यहाँ JSON दिखेगा…"></textarea>
+      <div class="helper-text" id="backup-warning">Import करने पर मौजूदा डेटा बदल सकता है। पहले Export ले लें।</div>
     </section>
 
     <!-- SETTINGS -->
     <section class="tab card hidden" id="tab-settings">
       <h2>⚙️ Settings</h2>
       <div class="row">
-        <div class="col-6"><label>महीने का खर्च लक्ष्य</label><input id="goal-expense" type="number" min="0" /></div>
-        <div class="col-6"><label>किराया लक्ष्य</label><input id="goal-rent" type="number" min="0" /></div>
+        <div class="col-6"><label>महीने का खर्च लक्ष्य</label><input id="goal-expense" type="number" min="0" placeholder="उदा. 15000" /></div>
+        <div class="col-6"><label>किराया लक्ष्य</label><input id="goal-rent" type="number" min="0" placeholder="उदा. 12000" /></div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <label for="dark-mode-toggle">डार्क मोड</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="dark-mode-toggle">
+            <span>रात में आरामदायक व्यू</span>
+          </div>
+        </div>
       </div>
       <button class="btn" id="save-settings">सेव</button>
       <span class="muted" id="save-msg"></span>

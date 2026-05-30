@@ -10,6 +10,9 @@
   <meta name="theme-color" content="#0f1221">
 
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- iPhone support -->
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -65,13 +68,38 @@
 
   <!-- MOBILE SLIDE MENU -->
   <aside id="mobile-menu" class="slide-menu" aria-hidden="true">
-    <button data-tab="home" data-i18n="tabHome">🏠 Home</button>
-    <button data-tab="rent" data-i18n="tabRent">🏢 Rent</button>
-    <button data-tab="farm" data-i18n="tabFarm">🌾 Farm</button>
-    <button data-tab="reports" data-i18n="tabReports">📊 Reports</button>
-    <button data-tab="backup" data-i18n="tabBackup">🗄️ Backup</button>
-    <button data-tab="settings" data-i18n="tabSettings">⚙️ Settings</button>
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-title">Smart Khaata</div>
+        <div class="drawer-subtitle">Home • Rent • Farm</div>
+        <div class="drawer-meta">Local data on device</div>
+      </div>
+      <button id="drawer-close" class="drawer-close" aria-label="Close menu">✕</button>
+    </div>
+    <div class="drawer-summary">
+      <div><span>💰 Net Balance</span><strong id="drawer-net">₹0</strong></div>
+      <div><span>🏢 Tenants</span><strong id="drawer-tenants">0</strong></div>
+      <div><span>🌾 Crops</span><strong id="drawer-crops">0</strong></div>
+    </div>
+    <nav class="drawer-menu">
+      <button class="drawer-link" data-tab="home" data-i18n="tabHome">🏠 Home</button>
+      <button class="drawer-link" data-tab="rent" data-i18n="tabRent">🏢 Rent</button>
+      <button class="drawer-link" data-tab="farm" data-i18n="tabFarm">🌾 Farm</button>
+      <button class="drawer-link" data-tab="reports" data-i18n="tabReports">📊 Reports</button>
+    </nav>
+    <div class="drawer-divider"></div>
+    <button class="drawer-link" data-tab="backup">☁ Backup & Restore</button>
+    <button class="drawer-link" data-tab="settings">⚙ Settings</button>
+    <div class="drawer-bottom">
+      <button class="drawer-link" type="button">❓ Help</button>
+      <button class="drawer-link" type="button">ℹ About</button>
+      <div class="drawer-version">
+        Smart Khaata v1.0
+        <div class="drawer-build">Made with ❤️</div>
+      </div>
+    </div>
   </aside>
+  <div id="menu-overlay" class="menu-overlay" hidden></div>
 
   <!-- PULL TO REFRESH INDICATOR -->
   <div id="pull-indicator" data-i18n="pullToRefresh">Pull to refresh</div>
@@ -103,12 +131,16 @@
               <div class="col-4">
                 <label data-i18n="labelCategory">कैटेगरी</label>
                 <select name="category" required>
-                  <option data-i18n="categoryGrocery">किराना</option><option data-i18n="categoryUtility">यूटिलिटी</option><option data-i18n="categoryMedical">दवा</option>
-                  <option data-i18n="categoryTransport">परिवहन</option><option data-i18n="categoryEducation">शिक्षा</option><option data-i18n="categoryOther">अन्य</option>
+                  <option value="🥦 Grocery">🥦 Grocery</option>
+                  <option value="⚡ Bills">⚡ Bills</option>
+                  <option value="💊 Medical">💊 Medical</option>
+                  <option value="🚗 Transport">🚗 Transport</option>
+                  <option value="🎓 Education">🎓 Education</option>
+                  <option value="🧾 Other">🧾 Other</option>
                 </select>
               </div>
               <div class="col-4">
-                <label data-i18n="labelAmount">राशि (₹)</label>
+                <label data-i18n="labelAmount">राशि</label>
                 <input type="number" name="amount" step="0.01" min="0" required />
               </div>
               <div class="col-12">
@@ -127,25 +159,25 @@
         <div class="card">
           <div class="kpi">
             <div class="box">
-              <div class="small muted" data-i18n="homeMonthTotalLabel">इस माह कुल खर्च</div>
+              <div class="box-head"><span class="small muted" data-i18n="homeMonthTotalLabel">इस माह कुल खर्च</span><span class="box-icon">💰</span></div>
               <div class="val" id="home-month-total">₹0</div>
               <div class="bar"><div class="fill" id="home-month-bar" style="width:0%"></div></div>
             </div>
             <div class="box">
-              <div class="small muted" data-i18n="homeDailyAvgLabel">दैनिक औसत</div>
+              <div class="box-head"><span class="small muted" data-i18n="homeDailyAvgLabel">दैनिक औसत</span><span class="box-icon">📈</span></div>
               <div class="val" id="home-daily-avg">₹0</div>
+              <div class="trend" id="home-daily-trend">↑ 8% from last week</div>
             </div>
             <div class="box">
-              <div class="small muted" data-i18n="homeTopCategoryLabel">सबसे बड़ी कैटेगरी</div>
+              <div class="box-head"><span class="small muted" data-i18n="homeTopCategoryLabel">सबसे बड़ी कैटेगरी</span><span class="box-icon">⭐</span></div>
               <div class="val" id="home-top-cat">—</div>
             </div>
           </div>
 
           <div class="toolbar">
-            <input id="home-search" data-i18n-placeholder="homeSearchPlaceholder" placeholder="खोजें (कैटेगरी/विवरण)" />
-            <select id="home-month-filter">
-              <option value="" data-i18n="allMonths">सभी महीने</option></select>
-            <button class="btn secondary small" id="home-export" data-i18n="homeExport">CSV एक्सपोर्ट</button>
+              <input id="home-search" class="search-input" data-i18n-placeholder="homeSearchPlaceholder" placeholder="खोजें (कैटेगरी/विवरण)" />
+              <select id="home-month-filter"><option value="" data-i18n="allMonths">सभी महीने</option></select>
+              <button class="btn secondary small" id="home-export" data-i18n="homeExport">CSV एक्सपोर्ट</button>
           </div>
 
           <div class="table-wrap">
@@ -164,9 +196,10 @@
       <p class="muted" data-i18n="rentDescription">किराये की इनकम, देय/प्राप्ति और टेनेंट ट्रैक करें।</p>
 
       <div class="grid">
-        <div class="card">
+          <div class="card">
           <form id="form-rent">
-            <!-- Basic Info -->
+            <!-- Tenant Details -->
+            <div class="row section-head"><strong>Tenant Details</strong></div>
             <div class="row">
               <div class="col-3"><label data-i18n="labelDate">तारीख</label><input type="date" name="date" required /></div>
               <div class="col-3"><label data-i18n="labelTenant">टेनेंट</label><input type="text" name="tenant" required /></div>
@@ -179,30 +212,34 @@
               </div>
               <div class="col-3"><label data-i18n="labelWhatsapp">📱 WhatsApp</label><input type="tel" name="whatsapp" data-i18n-placeholder="whatsappPlaceholder" placeholder="जैसे 9876543210" inputmode="numeric" pattern="[0-9]{10}" /><div class="helper-text" data-i18n="whatsappHelper">10 अंकों का नंबर डालें या खाली छोड़ें।</div></div>
             </div>
-            
-            <!-- Rent & Status -->
+
+            <!-- Rent Details -->
+            <div class="row section-head"><strong>Rent Details</strong></div>
             <div class="row">
-              <div class="col-6"><label data-i18n="labelRentAmount">किराया (₹)</label><input type="number" name="amount" step="0.01" min="0" required /></div>
+              <div class="col-6"><label data-i18n="labelRentAmount">किराया</label><input type="number" name="amount" step="0.01" min="0" required /></div>
               <div class="col-6"><label data-i18n="labelStatus">स्टेटस</label>
                 <select name="status"><option data-i18n="statusReceived">Received</option><option data-i18n="statusPending">Pending</option><option data-i18n="statusPartial">Partial</option></select>
               </div>
             </div>
-            
-            <!-- Meter Readings -->
+
+            <!-- Electricity -->
+            <div class="row section-head"><strong>Electricity</strong></div>
             <div class="row">
               <div class="col-4"><label data-i18n="labelPrevReading">पहला रीडिंग</label><input type="number" name="prevReading" step="0.01" min="0" data-i18n-placeholder="readingExample" placeholder="जैसे 520" /></div>
               <div class="col-4"><label data-i18n="labelCurrentReading">वर्तमान रीडिंग</label><input type="number" name="currentReading" step="0.01" min="0" data-i18n-placeholder="readingExampleDecimal" placeholder="जैसे 573.51" /></div>
-              <div class="col-4"><label data-i18n="labelRatePerUnit">दर (₹/यूनिट)</label><input type="number" name="ratePerUnit" step="0.01" min="0" value="8" /></div>
+              <div class="col-4"><label data-i18n="labelRatePerUnit">दर/यूनिट</label><input type="number" name="ratePerUnit" step="0.01" min="0" value="8" /></div>
             </div>
-            
-            <!-- Calculated Values -->
+
+            <!-- Calculated Values (readonly) -->
             <div class="row">
-              <div class="col-4"><label data-i18n="labelUnitsAuto">यूनिट (ऑटो)</label><input type="text" name="units" readonly data-i18n-placeholder="zeroValue" placeholder="0.00" /></div>
-              <div class="col-4"><label data-i18n="labelLightBillAuto">बिजली बिल (₹) (ऑटो)</label><input type="text" name="lightBill" readonly data-i18n-placeholder="rupeeZero" placeholder="₹0" /></div>
+              <div class="col-4"><label data-i18n="labelUnitsAuto">यूनिट (ऑटो)</label><input class="readonly" type="text" name="units" readonly data-i18n-placeholder="zeroValue" placeholder="0.00" /><div class="helper-text small muted">Automatically calculated</div></div>
+              <div class="col-4"><label data-i18n="labelLightBillAuto">बिजली बिल (ऑटो)</label><input class="readonly" type="text" name="lightBill" readonly data-i18n-placeholder="rupeeZero" placeholder="₹0" /></div>
               <div class="col-4"><label data-i18n="labelTotalRentBill">कुल (किराया + बिल)</label><input type="text" readonly placeholder="₹0" style="font-weight:bold;color:#7ef29a" id="rent-form-total" /></div>
             </div>
-            
+            <div class="row"><div class="col-12"><div id="rent-calc-breakdown" class="muted small">Units × Rate = Bill</div></div></div>
+
             <!-- Photo & Notes -->
+            <div class="row section-head"><strong>Additional</strong></div>
             <div class="row">
               <div class="col-6">
                 <label data-i18n="labelMeterPhoto">मीटर फोटो (वैकल्पिक)</label>
@@ -211,7 +248,7 @@
               </div>
               <div class="col-6"><label data-i18n="labelNote">नोट</label><input type="text" name="note" data-i18n-placeholder="notePlaceholder" placeholder="कोई विशेष जानकारी..." /></div>
             </div>
-            
+
             <div class="toolbar">
               <button class="btn" type="submit" data-i18n="rentAddIncome">➕ इनकम जोड़ें</button>
               <button class="btn secondary" id="rent-clear" data-i18n="rentClear">सूची साफ़ करें</button>
@@ -231,7 +268,7 @@
           </div>
 
           <div class="toolbar">
-            <input id="rent-search" data-i18n-placeholder="rentSearchPlaceholder" placeholder="टेनेंट/नोट खोजें" />
+            <input id="rent-search" class="search-input" data-i18n-placeholder="rentSearchPlaceholder" placeholder="टेनेंट/नोट खोजें" />
             <select id="rent-month-filter"><option value="" data-i18n="allMonths">सभी महीने</option></select>
             <button class="btn secondary small" id="rent-export" data-i18n="rentExport">CSV एक्सपोर्ट</button>
           </div>
@@ -332,7 +369,7 @@
 
           <!-- Price -->
           <div class="col-2 farm-price-field" style="display:none">
-            <label data-i18n="labelPrice">कीमत (₹)</label>
+            <label data-i18n="labelPrice">कीमत</label>
             <input type="number" name="price" />
           </div>
 
@@ -376,7 +413,7 @@
       </div>
 
       <div class="toolbar">
-        <input id="farm-search" data-i18n-placeholder="farmSearchPlaceholder" placeholder="खोजें (फ़सल/नोट)" />
+        <input id="farm-search" class="search-input" data-i18n-placeholder="farmSearchPlaceholder" placeholder="खोजें (फ़सल/नोट)" />
         <select id="farm-type-filter">
           <option value="" data-i18n="allTypes">सभी टाइप</option>
           <option data-i18n="farmTypeExpense">Expense</option>
@@ -415,8 +452,8 @@
               <th onclick="sortFarm('date')" data-i18n="farmDate">तारीख ⬍</th>
               <th data-i18n="farmType">टाइप</th>
               <th data-i18n="farmCrop">फ़सल</th>
+              <th data-i18n="farmNote">Details</th>
               <th onclick="sortFarm('amount')" data-i18n="farmAmount">राशि ⬍</th>
-              <th data-i18n="farmNote">नोट</th>
               <th data-i18n="farmAction">Action</th>
             </tr>
           </thead>
@@ -437,30 +474,83 @@
     <!-- REPORTS -->
     <section class="tab card hidden" id="tab-reports">
       <h2 data-i18n="reportsTitle">📊 Reports & Insights</h2>
-      <div class="toolbar">
+      <div class="toolbar report-top-row">
         <select id="report-month-filter"><option value="" data-i18n="allMonths">सभी महीने</option></select>
-        <button class="btn secondary small" id="report-refresh" data-i18n="reportRefresh">Refresh</button>
+        <div class="report-top-actions">
+          <button class="btn secondary small" id="report-refresh" data-i18n="reportRefresh">Refresh</button>
+          <span class="muted small" id="report-last-updated">Updated: —</span>
+        </div>
       </div>
-      <div class="grid">
-        <div class="card">
-          <h3 data-i18n="reportsSummary">समरी</h3>
-          <div class="kpi">
-            <div class="box"><div class="small muted" data-i18n="reportsHome">Home खर्च</div><div class="val" id="r-home">₹0</div></div>
-            <div class="box"><div class="small muted" data-i18n="reportsRent">Rent प्राप्ति</div><div class="val" id="r-rent">₹0</div></div>
-            <div class="box"><div class="small muted" data-i18n="reportsFarm">Farm प्रॉफिट</div><div class="val" id="r-farm">₹0</div></div>
-            <div class="box"><div class="small muted" data-i18n="reportsNetBalance">Net Balance</div><div class="val" id="r-balance">₹0</div></div>
+
+      <div class="report-summary-grid">
+        <div class="summary-box">
+          <div class="small muted">🏠 Home</div>
+          <div class="val" id="r-home">₹0</div>
+        </div>
+        <div class="summary-box">
+          <div class="small muted">🏢 Rent</div>
+          <div class="val" id="r-rent">₹0</div>
+        </div>
+        <div class="summary-box">
+          <div class="small muted">🌾 Farm</div>
+          <div class="val" id="r-farm">₹0</div>
+        </div>
+        <div class="summary-box">
+          <div class="small muted">💰 Net Balance</div>
+          <div class="val" id="r-balance">₹0</div>
+        </div>
+      </div>
+
+      <div class="grid report-main-grid">
+        <div class="card report-trend-card">
+          <h3 data-i18n="reportsMonthlyTrend">मासिक ट्रेंड</h3>
+          <div class="trend-legend">
+            <span class="legend-dot rent"></span><span data-i18n="reportsRentLabel">Rent</span>
+            <span class="legend-dot farm"></span><span data-i18n="reportsFarm">Farm</span>
+            <span class="legend-dot home"></span><span data-i18n="reportsHomeLabel">Home</span>
           </div>
+          <div id="report-trend-chart" class="trend-grid"></div>
         </div>
 
-        <div class="card report-chart-card">
-          <h3 data-i18n="reportsMonthlyTrend">मासिक ट्रेंड</h3>
-          <div class="report-chart">
-            <div class="report-bar-label" data-i18n="reportsRentLabel">Rent</div>
-            <div class="bar"><div class="fill" id="r-ratio" style="width:50%"></div></div>
-            <div class="report-bar-label" data-i18n="reportsHomeLabel">Home</div>
-            <div class="bar"><div class="fill green" id="r-home-ratio" style="width:50%"></div></div>
+        <div class="card report-details-card">
+          <h3>Net Balance Breakdown</h3>
+          <div class="report-breakdown">
+            <div><span>Rent Income</span><span id="report-break-rent">₹0</span></div>
+            <div><span>Farm Profit</span><span id="report-break-farm">₹0</span></div>
+            <div><span>Home Spend</span><span id="report-break-home">₹0</span></div>
           </div>
-          <div class="muted small" data-i18n="reportsLegend">नीला = Rent, हरा = Home</div>
+          <div class="report-break-total">
+            <span>Net Balance</span><strong id="report-break-total">₹0</strong>
+          </div>
+
+          <div class="report-pie-card">
+            <div id="report-pie-chart" class="report-pie"></div>
+            <div class="pie-labels">
+              <div><span class="legend-dot farm"></span><strong>Farm</strong> <span id="report-pie-farm-label">0%</span></div>
+              <div><span class="legend-dot rent"></span><strong>Rent</strong> <span id="report-pie-rent-label">0%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid report-insight-grid">
+        <div class="card report-kpi-card">
+          <h3>Quick Stats</h3>
+          <div class="quick-list">
+            <div><span>🏢 Tenants</span><strong id="report-tenants">0</strong></div>
+            <div><span>🌾 Crops</span><strong id="report-crops">0</strong></div>
+            <div><span>🧾 Expenses</span><strong id="report-expenses">0</strong></div>
+            <div><span>💵 Transactions</span><strong id="report-transactions">0</strong></div>
+          </div>
+        </div>
+        <div class="card report-insights-card">
+          <h3>Insights</h3>
+          <ul class="insight-list">
+            <li id="report-insight-income">—</li>
+            <li id="report-insight-rent">—</li>
+            <li id="report-insight-month">—</li>
+            <li id="report-insight-crop">—</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -489,22 +579,85 @@
       </div>
       <div class="row">
         <div class="col-6">
-          <label for="dark-mode-toggle" data-i18n="labelDarkMode">डार्क मोड</label>
-          <div class="toggle-switch">
-            <input type="checkbox" id="dark-mode-toggle">
-            <span data-i18n="darkModeNote">रात में आरामदायक व्यू</span>
+          <label data-i18n="labelCurrency">Currency</label>
+          <select id="currency-select">
+            <option value="INR">₹ INR</option>
+            <option value="USD">$ USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="toggle-row">
+            <div class="toggle-copy">
+              <span class="toggle-title" data-i18n="labelDarkMode">Dark mode</span>
+              <span class="small muted" data-i18n="darkModeNote">Comfortable night view</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="dark-mode-toggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
           </div>
         </div>
-
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="toggle-row">
+            <div class="toggle-copy">
+              <span class="toggle-title" data-i18n="backupReminderLabel">Backup reminder</span>
+              <span class="small muted" data-i18n="backupReminderNote">Weekly local backup alert</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="backup-reminder-toggle" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="toggle-row">
+            <div class="toggle-copy">
+              <span class="toggle-title" data-i18n="notificationsLabel">Notifications</span>
+              <span class="small muted" data-i18n="notificationsNote">Rent and expense alerts</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="notification-toggle" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="toggle-row">
+            <div class="toggle-copy">
+              <span class="toggle-title" data-i18n="exportCsvLabel">Export CSV</span>
+              <span class="small muted" data-i18n="exportCsvNote">Keep monthly export ready</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="export-csv-toggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
       </div>
       <div class="helper-text" id="language-helper" data-i18n="languageHelper">भाषा बदलने के बाद सेव करें।</div>
-      <button class="btn" id="save-settings" data-i18n="saveSettings">सेव</button>
+      <div class="toolbar">
+        <button class="btn" id="save-settings" data-i18n="saveSettings">सेटिंग सेव करें</button>
+        <button class="btn secondary" id="reset-settings" data-i18n="resetSettings">रीसेट</button>
+      </div>
       <span class="muted" id="save-msg"></span>
+      <div class="helper-text" style="margin-top:12px;" data-i18n="settingsVersionInfo">App version 1.0 • Local save only</div>
     </section>
   </main>
 
+  <button class="fab" id="fab-add" aria-label="Add expense">＋</button>
+
   <footer data-i18n="footerText">Smart Khaata • खर्च, किराया, खेती — सब एक जगह</footer>
 
+  <script src="helpers.js"></script>
+  <script src="settings.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

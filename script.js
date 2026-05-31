@@ -526,8 +526,22 @@ function t(key, replacements = {}) {
 
 // ---------- Safe download (Android + iPhone fix) ----------
 function download(filename, text, mime="text/csv") {
-  const BOM = "\uFEFF"; 
+  const BOM = "\uFEFF";
   const blob = new Blob([BOM + text], { type: mime + ";charset=utf-8;" });
+
+  // Prefer Web Share (with files) on mobile where available so user can open/share immediately
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: mime })] })) {
+      const file = new File([blob], filename, { type: mime });
+      navigator.share({ files: [file], title: filename }).catch(()=>{
+        // ignore share errors and fallback to download
+      });
+      return;
+    }
+  } catch (e) {
+    // ignore and fallback
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.style.display = "none";
@@ -536,11 +550,13 @@ function download(filename, text, mime="text/csv") {
   document.body.appendChild(a);
   a.click();
 
+  // Extra attempt for iOS to open the blob in a new tab (some Safari builds)
   if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
     setTimeout(()=> window.open(url, "_blank"), 500);
   }
 
-  setTimeout(()=> { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1500);
+  // Cleanup later to allow OS/download manager to process the file
+  setTimeout(()=> { URL.revokeObjectURL(url); try{ document.body.removeChild(a); }catch(e){} }, 3000);
 }
 
 // ---------- Tabs ----------

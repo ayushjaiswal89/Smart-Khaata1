@@ -546,6 +546,9 @@ function download(filename, text, mime="text/csv") {
   const a = document.createElement("a");
   a.style.display = "none";
   a.href = url;
+  // hint browsers to open in a new tab/window on mobile where download attribute is ignored
+  a.target = "_blank";
+  a.rel = "noopener";
   a.download = filename;
   document.body.appendChild(a);
   a.click();

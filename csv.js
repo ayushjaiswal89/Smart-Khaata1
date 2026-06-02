@@ -29,6 +29,8 @@ function download(filename, text, mime = "application/vnd.ms-excel") {
   const file = new File([blob], filename, { type: mime });
   const url = URL.createObjectURL(blob);
 
+  const isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
+
   // Try Share API first (Android + modern browsers)
   try {
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -50,11 +52,21 @@ function download(filename, text, mime = "application/vnd.ms-excel") {
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.style.display = "none";
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+
+    // For mobile, also try location.href as fallback
+    if (isMobile) {
+      setTimeout(() => {
+        location.href = url;
+      }, 100);
+    }
 
     setTimeout(() => {
+      try {
+        document.body.removeChild(a);
+      } catch (e) {}
       URL.revokeObjectURL(url);
     }, 3000);
   }

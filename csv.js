@@ -1,8 +1,15 @@
 function csvEscape(value) {
   if (value === null || value === undefined) return "";
-  return String(value)
+  let escaped = String(value)
     .replace(/"/g, '""')
     .replace(/\r?\n/g, ' ');
+  
+  // Formula injection protection: prepend single quote if starts with =, +, @, -
+  if (/^[=+@-]/.test(escaped)) {
+    escaped = "'" + escaped;
+  }
+  
+  return escaped;
 }
 
 function makeCsvRow(cells) {
@@ -15,7 +22,7 @@ function makeCsv(headers, rows) {
   return [headerRow, ...bodyRows].join("\n");
 }
 
-function download(filename, text, mime = "application/vnd.ms-excel") {
+function download(filename, text, mime = "text/csv") {
   const BOM = "\uFEFF";
   const content = mime === "application/json" ? text : BOM + text;
   const blob = new Blob([content], { type: mime + ";charset=utf-8;" });
@@ -27,6 +34,7 @@ function download(filename, text, mime = "application/vnd.ms-excel") {
     a.style.display = "none";
     a.href = url;
     a.target = "_blank";
+
     a.rel = "noopener";
     a.download = filename;
     document.body.appendChild(a);

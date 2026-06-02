@@ -22,7 +22,7 @@ function makeCsv(headers, rows) {
   return [headerRow, ...bodyRows].join("\n");
 }
 
-function download(filename, text, mime = "text/csv") {
+function download(filename, text, mime = "application/vnd.ms-excel") {
   const BOM = "\uFEFF";
   const content = mime === "application/json" ? text : BOM + text;
   const blob = new Blob([content], { type: mime + ";charset=utf-8;" });

@@ -524,7 +524,66 @@ function t(key, replacements = {}) {
   return String(text).replace(/\{(\w+)\}/g, (_, name) => replacements[name] ?? '');
 }
 
+// CSV download helper moved to csv.js
 
+// ---------- Tabs ----------
+const desktopTabs = $$(".desktop-tabs .tab-btn");
+
+const sections = {
+  home: $("#tab-home"), 
+  rent: $("#tab-rent"), 
+  farm: $("#tab-farm"),
+  reports: $("#tab-reports"), 
+  backup: $("#tab-backup"), 
+  settings: $("#tab-settings")
+};
+
+// ⭐⭐ WORKING FINAL openTab (only this one must exist)
+function openTab(name){
+  desktopTabs.forEach(b=>b.classList.remove("active"));
+  const desk = $(`.desktop-tabs .tab-btn[data-tab="${name}"]`);
+  if(desk) desk.classList.add("active");
+
+  $$("#mobile-menu [data-tab]").forEach(b => b.classList.remove("active"));
+  const mobileBtn = $(`#mobile-menu [data-tab="${name}"]`);
+  if(mobileBtn) mobileBtn.classList.add("active");
+
+  $$(".bottom-nav button[data-tab]").forEach(b => b.classList.remove("active"));
+  const bottomBtn = $(`.bottom-nav button[data-tab="${name}"]`);
+  if(bottomBtn) bottomBtn.classList.add("active");
+
+  Object.values(sections).forEach(s => s.classList.add("hidden"));
+  if(sections[name]) sections[name].classList.remove("hidden");
+
+  const fab = $("#fab-add");
+  if(fab) fab.style.display = name === "settings" ? "none" : "flex";
+
+  const menu = $("#mobile-menu");
+  const overlay = $("#menu-overlay");
+  if(menu) menu.classList.remove("open");
+  if(overlay){ overlay.classList.remove("visible"); overlay.hidden = true; }
+  $("#menu-toggle").textContent = "☰";
+  updateDrawerSummary();
+}
+
+function updateDrawerSummary(){
+  const tenants = new Set(state.rent.map(x=>x.tenant)).size;
+  const crops = new Set(state.farm.map(x=>x.crop)).size;
+  const homeTotal = state.home.reduce((sum,r)=>sum+(r.amount||0),0);
+  const rentTotal = state.rent.reduce((sum,r)=>sum+(r.totalAmount ?? r.amount ?? 0),0);
+  const farmSales = state.farm.filter(x=>x.type==="Sale").reduce((sum,r)=>sum+((r.quantity||0)*(r.price||0)),0);
+  const farmExpense = state.farm.filter(x=>x.type==="Expense").reduce((sum,r)=>sum+(r.amount||0),0);
+  const farmProfit = farmSales - farmExpense;
+  const netBalance = rentTotal + farmProfit - homeTotal;
+  if($("#drawer-tenants")) $("#drawer-tenants").textContent = tenants;
+  if($("#drawer-crops")) $("#drawer-crops").textContent = crops;
+  if($("#drawer-net")) $("#drawer-net").textContent = fmt(netBalance);
+}
+
+// desktop click
+desktopTabs.forEach(b =>
+  b.addEventListener("click", ()=> openTab(b.dataset.tab))
+);
 
 // ---------- Mobile menu ----------
 const mobMenu = $("#mobile-menu");
@@ -700,10 +759,18 @@ function setupEventListeners() {
 
   const homeExp = $("#home-export");
   if(homeExp) homeExp.onclick = ()=>{
-    const rows = filteredHome();
-    const csv = 
-      "Date,Category,Note,Amount\n" + 
-      rows.map(r => `"${r.date}","${r.category}","${r.note}",${r.amount}`).join("\n");
+    const rows = filteredHome().map(r => [
+      r.date,
+      r.category,
+      r.note || "",
+      r.amount
+    ]);
+    const csv = makeCsv([
+      t('homeDate'),
+      t('homeCategory'),
+      t('homeDescriptionCol'),
+      t('homeAmount')
+    ], rows);
 
     download(`home-${todayStr()}.csv`, csv);
   };
@@ -725,43 +792,56 @@ function setupEventListeners() {
 
   const rentExp = $("#rent-export");
   if(rentExp) rentExp.onclick = ()=>{
-    const rows = filteredRent();
+    const rows = filteredRent().map(r => [
+      r.date,
+      r.tenant,
+      r.month,
+      r.amount,
+      r.prevReading ?? "",
+      r.currentReading ?? "",
+      r.ratePerUnit ?? "",
+      r.units ?? "",
+      r.lightBill ?? 0,
+      r.totalAmount ?? r.amount ?? 0,
+      r.status,
+      r.note || ""
+    ]);
     const selectedMonth = $("#rent-month-filter").value;
     const monthLabel = selectedMonth ? selectedMonth : "All";
-    
-    // Header with month info
-    let csv = `Rent Income Report - ${monthLabel}\nGenerated: ${new Date().toLocaleString('hi-IN')}\n\n`;
-    
-    // Main data
-    csv +=
-      "तारीख,टेनेंट,महीना,किराया (₹),पिछली रीडिंग,वर्तमान रीडिंग,दर (₹/यूनिट),यूनिट,लाइट बिल (₹),कुल (₹),स्टेटस,नोट\n" +
-      rows.map(r => {
-        const prev = r.prevReading ?? "";
-        const curr = r.currentReading ?? "";
-        const rate = r.ratePerUnit ?? "";
-        const units = r.units ?? "";
-        const bill = r.lightBill ?? 0;
-        const total = r.totalAmount ?? r.amount ?? 0;
-        return `"${r.date}","${r.tenant}","${r.month}",${r.amount},"${prev}","${curr}","${rate}","${units}",${bill},${total},"${r.status}","${r.note}"`;
-      }).join("\n");
-    
-    // Tenant-wise breakdown
-    csv += "\n\nटेनेंट-वार सारांश\nTenant,Received,Pending,Partial,Total\n";
+    const header = `Rent Income Report - ${monthLabel}\nGenerated: ${new Date().toLocaleString('hi-IN')}\n\n`;
+    const bodyCsv = makeCsv([
+      t('rentDate'),
+      t('rentTenant'),
+      t('rentMonth'),
+      t('rentAmount'),
+      t('labelPrevReading'),
+      t('labelCurrentReading'),
+      t('labelRatePerUnit'),
+      t('rentUnits'),
+      t('rentLightBill'),
+      t('rentTotal'),
+      t('rentStatus'),
+      t('rentNote') || t('labelNote')
+    ], rows);
+
     const tenantMap = {};
-    rows.forEach(r => {
+    filteredRent().forEach(r => {
       if(!tenantMap[r.tenant]) tenantMap[r.tenant] = {received: 0, pending: 0, partial: 0};
       const amount = r.totalAmount ?? r.amount ?? 0;
       if(r.status === "Received") tenantMap[r.tenant].received += amount;
       else if(r.status === "Pending") tenantMap[r.tenant].pending += amount;
       else if(r.status === "Partial") tenantMap[r.tenant].partial += amount;
     });
-    
-    Object.entries(tenantMap).forEach(([tenant, data]) => {
-      const total = data.received + data.pending + data.partial;
-      csv += `"${tenant}",${data.received},${data.pending},${data.partial},${total}\n`;
-    });
+    const tenantSummaryRows = Object.entries(tenantMap).map(([tenant, data]) => [
+      tenant,
+      data.received,
+      data.pending,
+      data.partial,
+      data.received + data.pending + data.partial
+    ]);
+    const summaryCsv = makeCsv(["Tenant", "Received", "Pending", "Partial", "Total"], tenantSummaryRows);
 
-    download(`rent-${monthLabel}-${todayStr()}.csv`, csv);
+    download(`rent-${monthLabel}-${todayStr()}.csv`, header + bodyCsv + "\n\n" + "Tenant Summary\n" + summaryCsv);
   };
 
   const rentForm = $("#form-rent");
@@ -1359,18 +1439,28 @@ $("#form-farm").addEventListener("submit", e=>{
 const farmExportBtn = $("#farm-export");
 if(farmExportBtn) {
   farmExportBtn.onclick = ()=>{
-    const rows = filteredFarm();
-    const csv = "Date,Type,Crop,Quantity,Unit,Price,Amount,Note\n" +
-      rows.map(r=>{
-        if(r.type==="Expense") {
-          return `"${r.date}","${r.type}","${r.crop}","","","","${r.amount}","${r.note}"`;
-        } else if(r.type==="Yield") {
-          return `"${r.date}","${r.type}","${r.crop}","${r.quantity}","${r.unit}","","","${r.note}"`;
-        } else if(r.type==="Sale") {
-          const amount = r.quantity * r.price;
-          return `"${r.date}","${r.type}","${r.crop}","${r.quantity}","${r.unit}","${r.price}","${amount}","${r.note}"`;
-        }
-      }).filter(Boolean).join("\n");
+    const rows = filteredFarm().map(r=>[
+      r.date,
+      r.type,
+      r.crop,
+      r.expenseCategory || "",
+      r.quantity ?? "",
+      r.unit || "",
+      r.price ?? "",
+      r.type === "Sale" ? (r.quantity || 0) * (r.price || 0) : r.amount ?? "",
+      r.note || ""
+    ]);
+    const csv = makeCsv([
+      t('farmDate'),
+      t('farmType'),
+      t('farmCrop'),
+      t('labelExpenseCategory'),
+      t('labelQuantity'),
+      t('labelUnit'),
+      t('labelPrice'),
+      t('farmAmount'),
+      t('farmNote')
+    ], rows);
 
     download(`farm-${todayStr()}.csv`, csv);
   };

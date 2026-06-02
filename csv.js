@@ -31,43 +31,24 @@ function download(filename, text, mime = "application/vnd.ms-excel") {
 
   const isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
 
-  // Try Share API first (Android + modern browsers)
-  try {
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: filename })
-        .catch(err => {
-          if (err && err.name !== 'AbortError') {
-            downloadDirect();
-          }
-        });
-      return;
-    }
-  } catch (e) {
-    // ignore and fallback
-  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
 
-  downloadDirect();
-
-  function downloadDirect() {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-
-    // For mobile, also try location.href as fallback
-    if (isMobile) {
-      setTimeout(() => {
-        location.href = url;
-      }, 100);
-    }
-
+  if (isMobile) {
     setTimeout(() => {
-      try {
-        document.body.removeChild(a);
-      } catch (e) {}
-      URL.revokeObjectURL(url);
-    }, 3000);
+      location.href = url;
+    }, 100);
   }
+
+  setTimeout(() => {
+    try {
+      document.body.removeChild(a);
+    } catch (e) {}
+    URL.revokeObjectURL(url);
+  }, 3000);
 }
+

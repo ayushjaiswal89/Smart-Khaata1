@@ -50,12 +50,12 @@
     <!-- controls -->
     <div class="header-right">
       <nav class="tabs desktop-tabs" aria-label="Main tabs">
-        <button class="tab-btn active" data-tab="home" data-i18n="tabHome">🏠 Home</button>
-        <button class="tab-btn" data-tab="rent" data-i18n="tabRent">🏢 Rent</button>
-        <button class="tab-btn" data-tab="farm" data-i18n="tabFarm">🌾 Farm</button>
-        <button class="tab-btn" data-tab="reports" data-i18n="tabReports">📊 Reports</button>
-        <button class="tab-btn" data-tab="backup" data-i18n="tabBackup">🗄️ Backup</button>
-        <button class="tab-btn" data-tab="settings" data-i18n="tabSettings">⚙️ Settings</button>
+        <button class="tab-btn active" data-tab="home" onclick="openTab('home')" data-i18n="tabHome">🏠 Home</button>
+        <button class="tab-btn" data-tab="rent" onclick="openTab('rent')" data-i18n="tabRent">🏢 Rent</button>
+        <button class="tab-btn" data-tab="farm" onclick="openTab('farm')" data-i18n="tabFarm">🌾 Farm</button>
+        <button class="tab-btn" data-tab="reports" onclick="openTab('reports')" data-i18n="tabReports">📊 Reports</button>
+        <button class="tab-btn" data-tab="backup" onclick="openTab('backup')" data-i18n="tabBackup">🗄️ Backup</button>
+        <button class="tab-btn" data-tab="settings" onclick="openTab('settings')" data-i18n="tabSettings">⚙️ Settings</button>
       </nav>
 
       <button id="menu-toggle" class="menu-btn" aria-label="Open menu">☰</button>
@@ -82,10 +82,10 @@
       <div><span>🌾 Crops</span><strong id="drawer-crops">0</strong></div>
     </div>
     <nav class="drawer-menu">
-      <button class="drawer-link" data-tab="home" data-i18n="tabHome">🏠 Home</button>
-      <button class="drawer-link" data-tab="rent" data-i18n="tabRent">🏢 Rent</button>
-      <button class="drawer-link" data-tab="farm" data-i18n="tabFarm">🌾 Farm</button>
-      <button class="drawer-link" data-tab="reports" data-i18n="tabReports">📊 Reports</button>
+      <button class="drawer-link" data-tab="home" onclick="openTab('home')" data-i18n="tabHome">🏠 Home</button>
+      <button class="drawer-link" data-tab="rent" onclick="openTab('rent')" data-i18n="tabRent">🏢 Rent</button>
+      <button class="drawer-link" data-tab="farm" onclick="openTab('farm')" data-i18n="tabFarm">🌾 Farm</button>
+      <button class="drawer-link" data-tab="reports" onclick="openTab('reports')" data-i18n="tabReports">📊 Reports</button>
     </nav>
     <div class="drawer-divider"></div>
     <button class="drawer-link" data-tab="backup">☁ Backup & Restore</button>
@@ -178,6 +178,7 @@
               <input id="home-search" class="search-input" data-i18n-placeholder="homeSearchPlaceholder" placeholder="खोजें (कैटेगरी/विवरण)" />
               <select id="home-month-filter"><option value="" data-i18n="allMonths">सभी महीने</option></select>
               <button class="btn secondary small" id="home-export" data-i18n="homeExport">CSV एक्सपोर्ट</button>
+              <button class="btn secondary small" id="home-export-pdf" data-i18n="homeExportPdf">PDF डाउनलोड</button>
           </div>
 
           <div class="table-wrap">
@@ -271,11 +272,26 @@
             <input id="rent-search" class="search-input" data-i18n-placeholder="rentSearchPlaceholder" placeholder="टेनेंट/नोट खोजें" />
             <select id="rent-month-filter"><option value="" data-i18n="allMonths">सभी महीने</option></select>
             <button class="btn secondary small" id="rent-export" data-i18n="rentExport">CSV एक्सपोर्ट</button>
+            <button class="btn secondary small" id="rent-export-pdf">PDF डाउनलोड</button>
+            <button class="btn secondary small" id="rent-pending-reminder" data-i18n="rentPendingReminder">Pending Reminder</button>
           </div>
 
           <div class="table-wrap">
             <table id="rent-table">
-              <thead><tr><th data-i18n="rentDate">तारीख</th><th data-i18n="rentTenant">टेनेंट</th><th data-i18n="rentMonth">महीना</th><th data-i18n="rentAmount">राशि</th><th data-i18n="rentUnits">इकाइयाँ</th><th data-i18n="rentLightBill">लाइट बिल</th><th data-i18n="rentTotal">कुल</th><th data-i18n="rentStatus">स्टेटस</th><th>📱 WhatsApp</th><th></th></tr></thead>
+              <thead>
+                <tr>
+                  <th data-i18n="rentDate">Date</th>
+                  <th data-i18n="rentTenant">Tenant</th>
+                  <th data-i18n="rentMonth">Month</th>
+                  <th data-i18n="rentAmount">Rent</th>
+                  <th data-i18n="rentUnits">Units</th>
+                  <th data-i18n="rentLightBill">Light</th>
+                  <th data-i18n="rentTotal">Total</th>
+                  <th data-i18n="rentStatus">Status</th>
+                  <th data-i18n="labelWhatsapp">WhatsApp</th>
+                  <th></th>
+                </tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
@@ -421,6 +437,7 @@
           <option data-i18n="farmTypeSale">Sale</option>
         </select>
         <button class="btn secondary small" id="farm-export" data-i18n="farmExport">CSV एक्सपोर्ट</button>
+        <button class="btn secondary small" id="farm-export-pdf" data-i18n="farmExportPdf">PDF डाउनलोड</button>
       </div>
 
       <!-- Graph -->
@@ -662,3 +679,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+

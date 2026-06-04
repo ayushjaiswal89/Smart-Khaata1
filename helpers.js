@@ -10,7 +10,7 @@ const store = {
 
 function validatePhoneNumber(value){
   const digits = String(value||"").replace(/\D/g, '');
-  return digits.length === 10;
+  return digits.length === 10 || (digits.length === 12 && digits.startsWith('91')) || (digits.length === 11 && digits.startsWith('0'));
 }
 
 function normalizePhone(value){

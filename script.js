@@ -7,6 +7,21 @@ function fmt(n){
   }
   return new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 }).format(value);
 }
+
+function formatWhatsAppNumber(value){
+  let digits = String(value||"").replace(/\D/g, '');
+  if(digits.startsWith('91') && digits.length === 12){
+    return digits;
+  }
+  if(digits.startsWith('0') && digits.length === 11){
+    digits = digits.slice(1);
+  }
+  if(digits.length === 10){
+    return '91' + digits;
+  }
+  return digits;
+}
+
 const todayStr = () => new Date().toISOString().slice(0,10);
 const monthKey = d => (d||todayStr()).slice(0,7);
 
@@ -39,8 +54,76 @@ const settingsControls = [
 
 // ---------- State ----------
 const state = store.get("smart-khaata1", {
-  home: [], rent: [], farm: [], settings: { ...defaultSettings }
+  home: [], rent: [], farm: [], settings: { ...defaultSettings }, tenantProfiles: []
 });
+state.tenantProfiles = state.tenantProfiles || [];
+
+function upsertTenantProfile(tenant, whatsapp){
+  if(!tenant) return null;
+  const mobile = normalizePhone(whatsapp || "");
+  let profile = state.tenantProfiles.find(p=>p.name.toLowerCase()===tenant.toLowerCase() || (p.mobile && p.mobile === mobile));
+  if(profile){
+    profile.name = tenant;
+    if(mobile) profile.mobile = mobile;
+    return profile;
+  }
+  profile = { name: tenant, mobile, room: "", advance: 0, aadhaar: "" };
+  state.tenantProfiles.push(profile);
+  return profile;
+}
+
+function getLastTenantRecord(tenant){
+  return state.rent
+    .filter(r => r.tenant.trim().toLowerCase() === tenant.trim().toLowerCase())
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
+}
+
+function populateLastReadingForTenant(tenant){
+  const f = $("#form-rent");
+  if(!f || !tenant) return;
+  if(rentEditId) return;
+  const lastRent = getLastTenantRecord(tenant);
+  if(lastRent && lastRent.currentReading != null){
+    f.prevReading.value = lastRent.currentReading;
+    updateRentBillFields();
+  }
+}
+
+function showTenantHistorySummary(tenant){
+  if(!tenant) return;
+  const rows = state.rent.filter(r => r.tenant.trim().toLowerCase() === tenant.trim().toLowerCase());
+  if(rows.length === 0){
+    alert(`${tenant} के लिए कोई रिकॉर्ड नहीं मिला।`);
+    return;
+  }
+  const totalRent = rows.reduce((sum, r) => sum + (r.amount ?? 0), 0);
+  const totalLightBill = rows.reduce((sum, r) => sum + (r.lightBill ?? 0), 0);
+  const pendingAmount = rows.filter(r => r.status === 'Pending').reduce((sum, r) => sum + (r.totalAmount ?? r.amount ?? 0), 0);
+  const lastPayment = rows
+    .filter(r => r.status === 'Received')
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0]?.date || 'N/A';
+
+  const msg = `Tenant: ${tenant}\nTotal Rent: ${fmt(totalRent)}\nTotal Light Bill: ${fmt(totalLightBill)}\nPending Amount: ${fmt(pendingAmount)}\nLast Payment: ${lastPayment}`;
+  alert(msg);
+}
+
+function sendPendingRentReminders(){
+  const pending = state.rent.filter(x => x.status === 'Pending' && validatePhoneNumber(x.whatsapp));
+  if(pending.length === 0){
+    alert('No pending rent reminders available.');
+    return;
+  }
+  const tenants = Array.from(new Map(pending.map(r => [r.tenant.trim().toLowerCase(), r])).values());
+  if(!confirm(`Send reminders to ${tenants.length} pending tenant(s)?`)) return;
+
+  tenants.forEach(rent => {
+    const phone = formatWhatsAppNumber(rent.whatsapp);
+    if(!phone || !phone.startsWith('91') || phone.length !== 12) return;
+    const message = `${t('whatsappGreeting',{tenant:rent.tenant})}${t('whatsappPendingHeader')}${t('whatsappRentAmountLabel',{amount:fmt(rent.amount)})}${rent.lightBill ? t('whatsappLightBillLabel',{bill:fmt(rent.lightBill)}) : ''}${t('whatsappTotalLabel',{total:fmt(rent.totalAmount ?? rent.amount)})}\n${t('whatsappPendingFooter')}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  });
+}
 
 let homeEditId = null;
 let homeSortField = 'date';
@@ -132,6 +215,11 @@ const translations = {
     rentTenantsLabel: 'टेनेंट्स',
     rentSearchPlaceholder: 'टेनेंट/नोट खोजें',
     rentExport: 'CSV एक्सपोर्ट',
+    homeExportPdf: 'PDF डाउनलोड',
+    farmExportPdf: 'PDF डाउनलोड',
+    rentActions: 'कार्रवाई',
+    rentHistoryBtn: 'इतिहास',
+    rentUpdateBtn: 'अपडेट',
     rentDate: 'तारीख',
     rentTenant: 'टेनेंट',
     rentMonth: 'महीना',
@@ -222,14 +310,18 @@ const translations = {
     saveSettings: 'सेटिंग सेव करें',
     languageHelper: 'भाषा बदलने के बाद सेव करें।',
     savedMessage: 'सेव हुआ!',
+    buttonEdit: '✏️ संपादित करें',
     buttonDelete: 'हटाएँ',
     homeUpdateExpense: '💾 अपडेट करें',
     rentUpdateIncome: '💾 अपडेट करें',
     farmUpdateRecord: '💾 अपडेट करें',
+    confirmHomeDelete: 'क्या आप यह Home रिकॉर्ड हटाना चाहते हैं?',
     confirmHomeClear: 'क्या आप सभी Home रिकॉर्ड हटाना चाहते हैं?',
     confirmRentClear: 'क्या आप सभी Rent इनकम रिकॉर्ड हटाना चाहते हैं?',
+    confirmRentDelete: 'क्या आप इस Rent रिकॉर्ड को हटाना चाहते हैं?',
     confirmBackupImport: 'Backup import करने से मौजूदा डेटा बदल जाएगा। क्या आप जारी रखना चाहते हैं?',
     confirmRentDuplicate: '⚠️ {tenant} का {month} {year} का entry पहले से है।\n\nक्या update करना है? OK = Update | Cancel = नई entry',
+    pdfPopupBlocked: 'Popup ब्लॉक हो गया है। कृपया PDF डाउनलोड करने के लिए पॉपअप allow करें।',
     importSuccess: 'इम्पोर्ट सफल!',
     invalidJson: 'Invalid JSON!',
     scanStatusScanning: 'स्कैन कर रहे हैं…',
@@ -242,6 +334,7 @@ const translations = {
     rentNoRecords: 'कोई रिकॉर्ड नहीं मिला। नया किराया विवरण जोड़ें और मासिक इनकम साफ़ रखें।',
     farmNoRecords: 'कोई खेत रिकॉर्ड नहीं मिला। Expense, Yield या Sale जोड़कर शुरू करें।',
     whatsappSendButton: '📱 भेजें',
+    rentPendingReminder: 'Pending Reminder',
     invalidPhone: 'नंबर गलत',
     whatsappGreeting: 'नमस्ते {tenant} 🙏\n\n',
     whatsappMonthLabel: 'महीना: {month} {year}\n',
@@ -341,6 +434,11 @@ const translations = {
     rentTenantsLabel: 'Tenants',
     rentSearchPlaceholder: 'Search tenant/note',
     rentExport: 'Export CSV',
+    homeExportPdf: 'Download PDF',
+    farmExportPdf: 'Download PDF',
+    rentActions: 'Actions',
+    rentHistoryBtn: 'History',
+    rentUpdateBtn: 'Update',
     rentDate: 'Date',
     rentTenant: 'Tenant',
     rentMonth: 'Month',
@@ -431,14 +529,18 @@ const translations = {
     saveSettings: 'Save Settings',
     languageHelper: 'Change language and save to apply.',
     savedMessage: 'Saved!',
+    buttonEdit: '✏️ Edit',
     buttonDelete: 'Delete',
     homeUpdateExpense: '💾 Update',
     rentUpdateIncome: '💾 Update',
     farmUpdateRecord: '💾 Update',
+    confirmHomeDelete: 'Are you sure you want to delete this Home record?',
     confirmHomeClear: 'Are you sure you want to delete all Home records?',
     confirmRentClear: 'Are you sure you want to delete all Rent income records?',
+    confirmRentDelete: 'Are you sure you want to delete this Rent record?',
     confirmBackupImport: 'Backup import will overwrite existing data. Continue?',
     confirmRentDuplicate: '⚠️ {tenant} already has an entry for {month} {year}.\n\nUpdate existing? OK = Update | Cancel = Add new entry',
+    pdfPopupBlocked: 'Popup blocked. Please allow popups to download the PDF.',
     importSuccess: 'Import successful!',
     invalidJson: 'Invalid JSON!',
     scanStatusScanning: 'Scanning...',
@@ -451,6 +553,7 @@ const translations = {
     rentNoRecords: 'No rent records found. Add a new rent entry to keep monthly income organized.',
     farmNoRecords: 'No farm records found. Start by adding Expense, Yield, or Sale.',
     whatsappSendButton: 'Send',
+    rentPendingReminder: 'Pending Reminder',
     invalidPhone: 'Invalid number',
     whatsappGreeting: 'Hello {tenant} 🙏\n\n',
     whatsappMonthLabel: 'Month: {month} {year}\n',
@@ -618,7 +721,16 @@ $$(".bottom-nav button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const t = btn.dataset.tab;
     if(t) openTab(t);
-    else if(btn.id === "fab-export") $("#home-export").click();
+    else if(btn.id === "fab-export") {
+      const activeTab = Object.values(sections).find(sec => !sec.classList.contains('hidden'))?.id;
+      if(activeTab === 'tab-rent') {
+        $("#rent-export")?.click();
+      } else if(activeTab === 'tab-farm') {
+        $("#farm-export")?.click();
+      } else {
+        $("#home-export")?.click();
+      }
+    }
   });
 });
 
@@ -682,7 +794,7 @@ $("#form-home").addEventListener("submit", e=>{
   } else {
     // Add new record
     state.home.unshift({
-      id: crypto.randomUUID(),
+      id: (window.crypto && window.crypto.randomUUID) ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       date: f.date.value,
       category: f.category.value,
       amount: Number(f.amount.value||0),
@@ -775,10 +887,19 @@ function setupEventListeners() {
     download(`home-${todayStr()}.csv`, csv);
   };
 
+  const homePdf = $("#home-export-pdf");
+  if(homePdf) homePdf.onclick = exportHomeAsPdf;
+
+  const farmPdf = $("#farm-export-pdf");
+  if(farmPdf) farmPdf.onclick = exportFarmAsPdf;
+
   const rentClr = $("#rent-clear");
   if(rentClr) rentClr.onclick = ()=>{
     if(confirm(t('confirmRentClear'))){
       state.rent = [];
+      rentEditId = null;
+      const rentForm = $("#form-rent");
+      if(rentForm) rentForm.querySelector('button[type="submit"]').textContent = t('rentAddIncome');
       store.set("smart-khaata1", state);
       renderRent();
     }
@@ -789,6 +910,9 @@ function setupEventListeners() {
   
   const rentMonthFlt = $("#rent-month-filter");
   if(rentMonthFlt) rentMonthFlt.onchange = renderRent;
+
+  const rentPdf = $("#rent-export-pdf");
+  if(rentPdf) rentPdf.onclick = exportRentAsPdf;
 
   const rentExp = $("#rent-export");
   if(rentExp) rentExp.onclick = ()=>{
@@ -855,6 +979,7 @@ function setupEventListeners() {
     }
     if(rentForm.elements.tenant){
       rentForm.elements.tenant.addEventListener('input', ()=> clearFieldError(rentForm.elements.tenant));
+      rentForm.elements.tenant.addEventListener('blur', ()=> populateLastReadingForTenant(rentForm.elements.tenant.value));
     }
     if(rentForm.elements.amount){
       rentForm.elements.amount.addEventListener('input', ()=> clearFieldError(rentForm.elements.amount));
@@ -886,6 +1011,9 @@ function setupEventListeners() {
 
   const reportMonthFlt = $("#report-month-filter");
   if(reportMonthFlt) reportMonthFlt.onchange = renderReports;
+
+  const rentPendingReminder = $("#rent-pending-reminder");
+  if(rentPendingReminder) rentPendingReminder.onclick = sendPendingRentReminders;
 
   const fabAdd = $("#fab-add");
   if(fabAdd) fabAdd.onclick = ()=>{
@@ -958,13 +1086,16 @@ function renderHome(){
 
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
+      if(!confirm(t('confirmHomeDelete'))){
+        return;
+      }
       state.home = state.home.filter(x=>x.id !== btn.dataset.del);
       store.set("smart-khaata1", state);
       renderHome();
     };
   });
 
-  const monthRows = state.home.filter(x => monthKey(x.date) === activeMonth);
+  const monthRows = selectedMonth ? state.home.filter(x => monthKey(x.date) === activeMonth) : rows;
   const monthTotal = monthRows.reduce((a,b)=>a+b.amount,0);
 
   $("#home-month-total").textContent = fmt(monthTotal);
@@ -1062,6 +1193,8 @@ function updateRentBillFields() {
   }
 }
 
+let rentEditId = null;
+
 async function scanRentMeterPhoto(file) {
   const status = $("#rent-meter-status");
   if(!file || !status) return;
@@ -1098,6 +1231,12 @@ async function scanRentMeterPhoto(file) {
       
       const text = ocrData.text || "";
       console.log("OCR Raw Text:", text);
+      const lowerText = text.toLowerCase();
+
+      const consumerMatch = /consumer\s*(?:no|number)?\s*[:\-]?\s*([0-9]{5,})/.exec(lowerText);
+      const totalBillMatch = /(?:total|bill)\s*(?:amount|amt|₹)?\s*[:\-]?\s*₹?\s*([0-9]+(?:\.[0-9]+)?)/.exec(lowerText);
+      const prevMatch = /prev(?:ious)?\s*(?:reading)?\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?)/.exec(lowerText);
+      const currMatch = /(current|cur(?:rent)?)\s*(?:reading)?\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?)/.exec(lowerText);
       
       // Extract all numbers with their positions
       const regex = /\d+(?:\.\d+)?/g;
@@ -1111,25 +1250,26 @@ async function scanRentMeterPhoto(file) {
       
       // Filter for valid meter readings:
       // - Between 100 and 999999
-      // - Not batch/series numbers (length 5+ usually meter readings)
-      const validReadings = allNumbers.filter(n => {
-        const num = Number(n);
-        return num >= 100 && num <= 999999;
-      });
-      
+      const prevReadingDetected = prevMatch ? prevMatch[1] : null;
+      const currentReadingDetected = currMatch ? currMatch[2] : null;
+      const consumerNumber = consumerMatch ? consumerMatch[1] : null;
+      const totalBillDetected = totalBillMatch ? totalBillMatch[1] : null;
+
       // Prefer 5-6 digit numbers (most common meter range)
       const preferred = validReadings.filter(n => n.length >= 5 && n.length <= 6);
       const candidates = preferred.length > 0 ? preferred : validReadings;
       
-      if(candidates.length > 0) {
-        // Take the first valid candidate (usually leftmost/main reading)
-        const reading = candidates[0];
+      if(candidates.length > 0 || currentReadingDetected){
+        const reading = currentReadingDetected || candidates[0];
         const form = $("#form-rent");
+        if(prevReadingDetected) form.elements.prevReading.value = prevReadingDetected;
         form.elements.currentReading.value = reading;
         updateRentBillFields();
         
         let msg = `✓ रीडिंग: ${reading}`;
-        if(candidates.length > 1) {
+        if(consumerNumber) msg += ` | Consumer: ${consumerNumber}`;
+        if(totalBillDetected) msg += ` | कुल बिल: ${fmt(Number(totalBillDetected))}`;
+        if(candidates.length > 1 && !currentReadingDetected) {
           msg += ` [विकल्प: ${candidates.slice(1, 3).join(", ")}]`;
         }
         msg += ` - गलत हो तो मैन्युअली ठीक करें`;
@@ -1178,17 +1318,15 @@ $("#form-rent").addEventListener("submit", e=>{
     Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"
   }[f.month.value];
 
-  // Fix #5: Duplicate Prevention - Check if same tenant + month exists
-  const existingEntry = state.rent.find(x => x.tenant === tenant && x.yearMonth === ym);
-  if(existingEntry) {
+  const duplicateEntry = state.rent.find(x => x.tenant === tenant && x.yearMonth === ym && x.id !== rentEditId);
+  if(duplicateEntry) {
     const proceed = confirm(t('confirmRentDuplicate', {
       tenant,
       month: f.month.value,
       year: f.date.value.slice(0,4)
     }));
-    if(proceed) {
-      state.rent = state.rent.filter(x => x.id !== existingEntry.id);
-    }
+    if(!proceed) return;
+    state.rent = state.rent.filter(x => x.id !== duplicateEntry.id);
   }
 
   const { units, bill } = computeRentBill({
@@ -1197,8 +1335,8 @@ $("#form-rent").addEventListener("submit", e=>{
     rate: f.ratePerUnit.value
   });
 
-  state.rent.unshift({
-    id: crypto.randomUUID(),
+  const record = {
+    id: rentEditId || ((window.crypto && window.crypto.randomUUID) ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`),
     date: f.date.value,
     tenant: tenant,
     month: f.month.value,
@@ -1213,7 +1351,15 @@ $("#form-rent").addEventListener("submit", e=>{
     units,
     lightBill: bill,
     totalAmount: Number(f.amount.value||0) + bill
-  });
+  };
+
+  if(rentEditId) {
+    state.rent = state.rent.map(x => x.id === rentEditId ? record : x);
+    rentEditId = null;
+    f.querySelector('button[type="submit"]').textContent = t('rentAddIncome');
+  } else {
+    state.rent.unshift(record);
+  }
 
   store.set("smart-khaata1", state);
 
@@ -1229,12 +1375,194 @@ $("#form-rent").addEventListener("submit", e=>{
 
 function filteredRent(){
   const q = $("#rent-search").value.toLowerCase();
+  const numericQuery = q.replace(/\D/g, '');
   const m = $("#rent-month-filter").value;
 
   return state.rent.filter(r=>
     (!m || r.yearMonth===m) &&
-    (!q || r.tenant.toLowerCase().includes(q) || (r.note||"").toLowerCase().includes(q))
+    (!q || r.tenant.toLowerCase().includes(q) || (r.note||"").toLowerCase().includes(q) || (r.whatsapp||"").replace(/\D/g,'').includes(numericQuery))
   );
+}
+
+function exportRentAsPdf(){
+  const rows = filteredRent();
+  if(rows.length === 0){
+    alert(t('rentNoRecords'));
+    return;
+  }
+
+  const selectedMonth = $("#rent-month-filter").value;
+  const monthLabel = selectedMonth || "All";
+  const summary = `Rent report for ${monthLabel} (${new Date().toLocaleDateString('hi-IN')})`;
+  const htmlRows = rows.map(item => `
+    <tr>
+      <td>${escapeHtml(item.date)}</td>
+      <td>${escapeHtml(item.tenant)}</td>
+      <td>${escapeHtml(item.month)}</td>
+      <td>${fmt(item.amount)}</td>
+      <td>${item.units ? Number(item.units).toFixed(2) : ''}</td>
+      <td>${fmt(item.lightBill || 0)}</td>
+      <td>${fmt(item.totalAmount ?? item.amount ?? 0)}</td>
+      <td>${escapeHtml(item.status)}</td>
+      <td>${escapeHtml(item.whatsapp || '')}</td>
+      <td>${escapeHtml(item.note || '')}</td>
+    </tr>
+  `).join('');
+
+  const popup = window.open('', '_blank');
+  if(!popup){
+    alert(t('pdfPopupBlocked') || 'Popup blocked. Please allow popups to download PDF.');
+    return;
+  }
+
+  popup.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Rent PDF Export</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1,h2 { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 12px; }
+    th { background: #f4f4f4; }
+    .summary { margin-top: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Rent Income Report</h1>
+  <div class="summary">${escapeHtml(summary)}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Tenant</th><th>Month</th><th>Rent</th><th>Units</th><th>Light Bill</th><th>Total</th><th>Status</th><th>WhatsApp</th><th>Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${htmlRows}
+    </tbody>
+  </table>
+</body>
+</html>`);
+  popup.document.close();
+  popup.focus();
+  popup.print();
+}
+
+function exportHomeAsPdf(){
+  const rows = filteredHome();
+  if(rows.length === 0){
+    alert(t('homeNoRecords'));
+    return;
+  }
+
+  const selectedMonth = $("#home-month-filter").value;
+  const monthLabel = selectedMonth || "All";
+  const summary = `Home expense report for ${monthLabel} (${new Date().toLocaleDateString('hi-IN')})`;
+  const htmlRows = rows.map(item => `
+    <tr>
+      <td>${escapeHtml(item.date)}</td>
+      <td>${escapeHtml(item.category)}</td>
+      <td>${escapeHtml(item.note || '')}</td>
+      <td>${fmt(item.amount)}</td>
+    </tr>
+  `).join('');
+
+  const popup = window.open('', '_blank');
+  if(!popup){
+    alert(t('pdfPopupBlocked') || 'Popup blocked. Please allow popups to download PDF.');
+    return;
+  }
+
+  popup.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Home PDF Export</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1,h2 { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 12px; }
+    th { background: #f4f4f4; }
+    .summary { margin-top: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Home Expense Report</h1>
+  <div class="summary">${escapeHtml(summary)}</div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      ${htmlRows}
+    </tbody>
+  </table>
+</body>
+</html>`);
+  popup.document.close();
+  popup.focus();
+  popup.print();
+}
+
+function exportFarmAsPdf(){
+  const rows = filteredFarm();
+  if(rows.length === 0){
+    alert(t('farmNoRecords'));
+    return;
+  }
+
+  const selectedType = $("#farm-type-filter").value;
+  const typeLabel = selectedType || "All";
+  const summary = `Farm report for ${typeLabel} (${new Date().toLocaleDateString('hi-IN')})`;
+  const htmlRows = rows.map(item => `
+    <tr>
+      <td>${escapeHtml(item.date)}</td>
+      <td>${escapeHtml(item.type)}</td>
+      <td>${escapeHtml(item.crop)}</td>
+      <td>${escapeHtml(getDisplayValue(item))}</td>
+      <td>${fmt(getNumericValue(item))}</td>
+      <td>${escapeHtml(item.note || '')}</td>
+    </tr>
+  `).join('');
+
+  const popup = window.open('', '_blank');
+  if(!popup){
+    alert(t('pdfPopupBlocked') || 'Popup blocked. Please allow popups to download PDF.');
+    return;
+  }
+
+  popup.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Farm PDF Export</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1,h2 { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 12px; }
+    th { background: #f4f4f4; }
+    .summary { margin-top: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Farm Report</h1>
+  <div class="summary">${escapeHtml(summary)}</div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Type</th><th>Crop</th><th>Details</th><th>Amount</th><th>Note</th></tr>
+    </thead>
+    <tbody>
+      ${htmlRows}
+    </tbody>
+  </table>
+</body>
+</html>`);
+  popup.document.close();
+  popup.focus();
+  popup.print();
 }
 
 function renderRent(){
@@ -1242,7 +1570,7 @@ function renderRent(){
   const tbody = $("#rent-table tbody");
 
   if(rows.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="10" class="empty-cell">${t('rentNoRecords')}</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="11" class="empty-cell">${t('rentNoRecords')}</td></tr>`;
   } else {
     tbody.innerHTML = rows.map(r=>`
       <tr>
@@ -1255,7 +1583,11 @@ function renderRent(){
         <td data-label="${t('rentTotal')}"><span class="pill pos">${fmt(r.totalAmount ?? r.amount)}</span></td>
         <td data-label="${t('rentStatus')}"><span class="pill ${r.status === 'Received' ? 'pos' : r.status === 'Pending' ? 'neg' : 'warn'}">${escapeHtml(r.status)}</span></td>
         <td data-label="${t('labelWhatsapp')}">${validatePhoneNumber(r.whatsapp) ? `<button class="btn secondary small" data-send-wa="${escapeHtml(r.id)}">${t('whatsappSendButton')}</button>` : (r.whatsapp ? t('invalidPhone') : '—')}</td>
-        <td><button class="btn secondary small" data-del="${escapeHtml(r.id)}">${t('buttonDelete')}</button></td>
+        <td>
+          <button class="btn secondary small" data-edit="${escapeHtml(r.id)}">${t('buttonEdit')}</button>
+          <button class="btn secondary small" data-history="${escapeHtml(r.tenant).replace(/\"/g,'&quot;')}">${t('rentHistoryBtn') || 'History'}</button>
+          <button class="btn secondary small" data-del="${escapeHtml(r.id)}">${t('buttonDelete')}</button>
+        </td>
       </tr>
     `).join("");
   }
@@ -1267,8 +1599,46 @@ function renderRent(){
     };
   });
 
+  tbody.querySelectorAll("[data-edit]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const rent = state.rent.find(x => x.id === btn.dataset.edit);
+      if(!rent) return;
+      const f = $("#form-rent");
+      if(!f) return;
+      rentEditId = rent.id;
+      f.date.value = rent.date;
+      f.tenant.value = rent.tenant;
+      f.month.value = rent.month;
+      f.amount.value = rent.amount;
+      f.status.value = rent.status;
+      f.prevReading.value = rent.prevReading ?? "";
+      f.currentReading.value = rent.currentReading ?? "";
+      f.ratePerUnit.value = rent.ratePerUnit ?? 8;
+      f.whatsapp.value = rent.whatsapp || "";
+      f.note.value = rent.note || "";
+      updateRentBillFields();
+      f.querySelector('button[type="submit"]').textContent = t('rentUpdateBtn') || 'Update';
+      f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+  });
+
+  tbody.querySelectorAll("[data-history]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const tenant = btn.dataset.history;
+      const rentSearch = $("#rent-search");
+      const rentMonthFilter = $("#rent-month-filter");
+      if(rentSearch) rentSearch.value = tenant;
+      if(rentMonthFilter) rentMonthFilter.value = "";
+      showTenantHistorySummary(tenant);
+      renderRent();
+    };
+  });
+
   tbody.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
+      if(!confirm(t('confirmRentDelete'))){
+        return;
+      }
       state.rent = state.rent.filter(x=>x.id !== btn.dataset.del);
       store.set("smart-khaata1", state);
       renderRent();
@@ -1283,10 +1653,8 @@ function renderRent(){
     ? state.rent.filter(x => x.yearMonth === selectedMonth)
     : state.rent;
 
-  // Fix #1: Correct Pending Calculation (only "Pending" status)
   const total = monthData
-    .filter(x => x.status === "Received")
-    .reduce((a, b) => a + (b.amount ?? 0), 0);
+    .reduce((a, b) => a + (b.totalAmount ?? b.amount ?? 0), 0);
 
   const received = monthData
     .filter(x => x.status === "Received")
@@ -1350,8 +1718,12 @@ function sendWhatsAppMessage(rent) {
 
   // Encode message for URL
   const encodedMsg = encodeURIComponent(message);
-  const phone = rent.whatsapp.replace(/[^0-9]/g, '');
-  const whatsappUrl = `https://wa.me/91${phone}?text=${encodedMsg}`;
+  const phone = formatWhatsAppNumber(rent.whatsapp);
+  if(!phone || !phone.startsWith('91') || phone.length !== 12){
+    alert(t('invalidPhone'));
+    return;
+  }
+  const whatsappUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
   
   // Open WhatsApp Web
   window.open(whatsappUrl, '_blank');
@@ -1737,12 +2109,19 @@ $("#backup-import").onchange = async e=>{
 
   try{
     const d = JSON.parse(await file.text());
-    ["home","rent","farm","settings"].forEach(k=> state[k] = d[k] ?? state[k]);
+    if(!d || typeof d !== 'object' || !Array.isArray(d.home) || !Array.isArray(d.rent) || !Array.isArray(d.farm) || typeof d.settings !== 'object'){
+      throw new Error('Invalid backup payload');
+    }
+    state.home = d.home;
+    state.rent = d.rent;
+    state.farm = d.farm;
+    state.settings = { ...defaultSettings, ...(d.settings || {}) };
 
     store.set("smart-khaata1", state);
     renderAll();
     alert(t('importSuccess'));
   }catch(e){
+    console.error('Backup import failed:', e);
     alert(t('invalidJson'));
   }
 };

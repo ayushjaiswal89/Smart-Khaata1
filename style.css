@@ -1027,13 +1027,7 @@ tr:hover td{background:#121733}
   .kpi .val{
     font-size:20px;
   }
-  label{
-  display:block;
-  margin-bottom:6px;
-  color:var(--muted);
-  font-size:14px;
-  font-weight:500;
-}
+  
 }
 
 /* ---------- FOOTER ---------- */

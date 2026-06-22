@@ -57,8 +57,8 @@
         <button class="tab-btn" data-tab="backup" onclick="openTab('backup')" data-i18n="tabBackup">🗄️ Backup</button>
         <button class="tab-btn" data-tab="settings" onclick="openTab('settings')" data-i18n="tabSettings">⚙️ Settings</button>
       </nav>
-
-      <button id="menu-toggle" class="menu-btn" aria-label="Open menu">☰</button>
+      
+      <button id="menu-toggle" class="menu-btn"aria-label="Open menu"> ☰</button>
     </div>
   </header>
 
@@ -74,7 +74,7 @@
         <div class="drawer-subtitle">Home • Rent • Farm</div>
         <div class="drawer-meta">Local data on device</div>
       </div>
-      <button id="drawer-close" class="drawer-close" aria-label="Close menu">✕</button>
+      
     </div>
     <div class="drawer-summary">
       <div><span>💰 Net Balance</span><strong id="drawer-net">₹0</strong></div>
@@ -88,8 +88,10 @@
       <button class="drawer-link" data-tab="reports" onclick="openTab('reports')" data-i18n="tabReports">📊 Reports</button>
     </nav>
     <div class="drawer-divider"></div>
-    <button class="drawer-link" data-tab="backup">☁ Backup & Restore</button>
-    <button class="drawer-link" data-tab="settings">⚙ Settings</button>
+    <nav class="drawer-menu">
+    <button class="drawer-link"onclick="openTab('backup')">☁ Backup & Restore</button>
+    <button class="drawer-link"onclick="openTab('settings')">⚙ Settings</button>
+    </nav>
     <div class="drawer-bottom">
       <button class="drawer-link" type="button">❓ Help</button>
       <button class="drawer-link" type="button">ℹ About</button>

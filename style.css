@@ -68,6 +68,16 @@ body[data-theme='light'] .card{
   color: #1d2939;
 }
 
+body[data-theme='light'] label{
+  color:#344054 !important;
+  font-weight:600;
+}
+
+body[data-theme='light'] .muted,
+body[data-theme='light'] .helper-text{
+  color:#667085 !important;
+}
+
 body[data-theme='light'] input,
 body[data-theme='light'] select,
 body[data-theme='light'] textarea{
@@ -78,11 +88,6 @@ body[data-theme='light'] textarea{
 
 body[data-theme='light'] .btn{
   box-shadow: 0 10px 20px rgba(59,130,246,.15);
-}
-
-body[data-theme='light'] .muted,
-body[data-theme='light'] .helper-text{
-  color: #556987;
 }
 
 body[data-theme='light'] .tab-btn,
@@ -112,6 +117,7 @@ body[data-theme='light'] .kpi .box{
   background: #f8fbff;
   border-color: #d9e2ef;
 }
+
 
 /* ---------- GLOBAL HIDE CLASS ---------- */
 .hidden{
@@ -162,6 +168,13 @@ header.scrolled{
   background:#1a2140;
   border-color:#33407a;
   box-shadow:0 6px 16px rgba(109,211,251,.15);
+}
+
+#tab-settings.card{
+  max-width:700px;
+  margin:auto;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,.15);
 }
 
 /* ---------- CONTAINER ---------- */
@@ -262,9 +275,11 @@ input:focus,select:focus,textarea:focus{
 .toggle-row{
   display:flex;
   align-items:center;
+  padding: 8px 0;
   justify-content:space-between;
   gap:12px;
   margin-top:8px;
+
 }
 .toggle-copy{
   display:flex;
@@ -350,6 +365,10 @@ input:focus,select:focus,textarea:focus{
 .btn:hover{
   transform:translateY(-2px);
   box-shadow:0 12px 28px rgba(34,130,255,.25);
+}
+.export-btn{
+  height: 60px;
+  border-radius: 16px;
 }
 
 .btn.secondary{
@@ -727,14 +746,20 @@ tr:hover td{background:#121733}
 .slide-menu{
   position:fixed;
   top:0; left:-100%;
-  width:min(78%, 320px);
+  width:min(72%, 300px);
   height:100vh;
+  
   background:#10172f;
   border-right:1px solid #1e2447;
   padding:18px 18px 12px;
   z-index:999;
   transition:left .32s cubic-bezier(.22,.9,.33,1);
   overflow:auto;
+   background:linear-gradient(
+    180deg,
+    #0b1330,
+    #111c42
+  );
 }
 .slide-menu.open{left:0}
 .drawer-header{
@@ -759,17 +784,9 @@ tr:hover td{background:#121733}
   color:#8d98b3;
   margin-top:8px;
 }
-.drawer-close{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.1);
-  color:#fff;
-  width:36px;
-  height:36px;
-  border-radius:12px;
-  cursor:pointer;
-}
+
 .drawer-summary{
-  background:rgba(255,255,255,.04);
+  background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.08);
   border-radius:16px;
   padding:14px;
@@ -788,12 +805,14 @@ tr:hover td{background:#121733}
   display:flex;
   align-items:center;
   gap:8px;
+  color: #ffffff;
 }
 .drawer-summary strong{
   font-size:1rem;
   font-weight:700;
   min-width:64px;
   text-align:right;
+  color: #ffffff;
 }
 .drawer-menu,
 .drawer-bottom{
@@ -812,12 +831,22 @@ tr:hover td{background:#121733}
   display:flex;
   align-items:center;
   justify-content:space-between;
+  
 }
+
 .drawer-link.active{
-  background:rgba(59,130,246,.18);
-  border-color:rgba(59,130,246,.4);
-  box-shadow:0 10px 24px rgba(59,130,246,.08);
+  background:linear-gradient(
+    90deg,
+    rgba(59,130,246,.25),
+    rgba(34,211,238,.15)
+  );
+  border-color:#3b82f6;
 }
+
+.drawer-link:hover{
+  transform:translateX(5px);
+}
+
 .drawer-divider{
   height:1px;
   background:rgba(255,255,255,.14);
@@ -827,6 +856,9 @@ tr:hover td{background:#121733}
   margin-top:18px;
 }
 .drawer-version{
+  padding: 12px;
+  border-radius: 12px;
+  background:rgba(255,255,255,.04);
   font-size:.82rem;
   color:var(--muted);
   margin-top:12px;
@@ -869,12 +901,15 @@ tr:hover td{background:#121733}
   border:none;
   color:var(--text);
   padding:10px;
-  font-size:18px;
+  font-size:13px;
   cursor:pointer;
   border-radius:8px;
   width: 52px;
   height: 52px;
   display:flex;
+  flex-direction: column;
+  gap:4px;
+
   align-items:center;
   justify-content:center;
 }
@@ -1081,7 +1116,7 @@ tr:hover td{background:#121733}
     font-size:14px;
   }
   .btn{
-    width:50%;
+    width:100%;
     font-size:14px;
   }
 
@@ -1113,6 +1148,26 @@ tr:hover td{background:#121733}
   .toolbar .btn{
     width:100%;
   }
+  .card{
+    padding: 16px;
+    border-radius: 20px;
+  }
+  input,
+  select,
+  textarea{
+    min-height: 54px;
+    font-size: 16px;
+  }
+  .btn{
+    min-height: 52px;
+    width: 100%;
+
+  }
+  footer{
+  
+  padding: 20px;
+ 
+}  
 }
 
 /* ---------- FOOTER ---------- */
